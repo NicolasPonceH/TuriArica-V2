@@ -1,5 +1,6 @@
 import { motion } from 'framer-motion';
 import * as LucideIcons from 'lucide-react';
+import { getGoogleMapsUrl } from '../utils/navigation';
 
 export default function PlaceCard({ place, onAudioClick, onRouteClick, onMoreClick }) {
   const IconComponent = LucideIcons[place.icon] || LucideIcons.MapPin;
@@ -65,11 +66,21 @@ export default function PlaceCard({ place, onAudioClick, onRouteClick, onMoreCli
           <button 
             onClick={() => onRouteClick(place)}
             className="p-2.5 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-600 hover:text-brand-600 transition-colors"
-            title={`Cómo llegar a ${place.name}`}
+            title={`Trazar ruta en mapa web hacia ${place.name}`}
             aria-label={`Cómo llegar a ${place.name}`}
           >
             <LucideIcons.Navigation size={18} />
           </button>
+          <a
+            href={getGoogleMapsUrl(place.lat, place.lng, place.name)}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="p-2.5 rounded-xl bg-blue-50 hover:bg-blue-100 text-blue-600 hover:text-blue-700 transition-colors flex items-center justify-center border border-blue-100"
+            title={`Abrir ${place.name} en Google Maps (Navegación GPS)`}
+            aria-label={`Abrir en Google Maps`}
+          >
+            <LucideIcons.Compass size={18} />
+          </a>
           <button 
             onClick={() => onMoreClick(place)}
             className="flex-1 py-2.5 px-4 rounded-xl bg-brand-50 hover:bg-brand-100 text-brand-600 hover:text-brand-700 font-bold text-xs sm:text-sm transition-colors border border-brand-100 text-center"

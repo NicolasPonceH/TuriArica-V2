@@ -7,6 +7,7 @@ import MapMarker from './MapMarker';
 import MapLayerToggle from './MapLayerToggle';
 import { CATEGORIES } from '../../data/categories';
 import { useLanguage } from '../../contexts/LanguageContext';
+import { getGoogleMapsUrl } from '../../utils/navigation';
 
 export default function InteractiveMap({
   places,
@@ -177,6 +178,17 @@ export default function InteractiveMap({
                   <LucideIcons.Navigation size={14} />
                   {routeCoords && routeCoords.length > 0 ? t('places.recalcRoute') : t('places.traceRoute')}
                 </button>
+
+                <a
+                  href={getGoogleMapsUrl(selectedPlace.lat, selectedPlace.lng, selectedPlace.name)}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="p-2 rounded-xl bg-blue-50 dark:bg-blue-950/40 hover:bg-blue-100 text-blue-600 dark:text-blue-400 transition-colors flex items-center justify-center"
+                  title="Abrir en Google Maps (Navegación GPS)"
+                  aria-label="Abrir en Google Maps (Navegación GPS)"
+                >
+                  <LucideIcons.Compass size={16} />
+                </a>
 
                 {onAudioClick && (
                   <button
