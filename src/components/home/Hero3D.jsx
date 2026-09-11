@@ -40,7 +40,7 @@ function VideoBackground() {
   );
 }
 
-import { Wind, Droplets, Sparkles } from 'lucide-react';
+import { Wind, Droplets, Sparkles, Map, List } from 'lucide-react';
 import { getUvDetails, getWeatherVisuals } from '../../utils/weatherUtils';
 
 export default function Hero3D({
@@ -63,103 +63,79 @@ export default function Hero3D({
   const uv = getUvDetails(weather.uvIndex);
 
   return (
-    <section id="inicio" className="relative h-screen min-h-[700px] w-full overflow-hidden flex items-center justify-center">
+    <section id="inicio" className="relative min-h-[90vh] sm:h-screen w-full overflow-hidden flex items-center">
       <VideoBackground />
 
-      {/* Content Overlay */}
-      <div className="relative z-10 text-center px-4 sm:px-6 max-w-4xl mx-auto mt-14 sm:mt-16">
+      {/* Soft atmospheric gradient on the left for maximum editorial text legibility */}
+      <div className="absolute inset-0 bg-gradient-to-r from-white/90 via-white/50 to-transparent dark:from-slate-950/90 dark:via-slate-950/60 dark:to-transparent pointer-events-none z-1" />
+
+      {/* Main Left-Aligned Container matching reference image */}
+      <div className="relative z-10 w-full max-w-7xl mx-auto px-6 sm:px-12 lg:px-20 pt-24 sm:pt-20 pb-16 flex flex-col items-start text-left">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1], delay: 0.15 }}
+          transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1], delay: 0.1 }}
+          className="max-w-2xl"
         >
-          {/* Live Weather & UV Glass Capsule over Hero */}
-          <div className="inline-flex flex-col items-center gap-2 mb-5">
-            <div className="inline-flex flex-wrap items-center justify-center gap-2.5 sm:gap-4 px-5 py-2.5 rounded-2xl bg-[#07111e]/90 backdrop-blur-2xl border border-white/20 text-white shadow-[0_12px_36px_rgba(0,0,0,0.6),inset_0_1px_1px_rgba(255,255,255,0.25)]">
-              {/* Temperature & Live status */}
-              <div className="flex items-center gap-2.5">
-                <div className={`w-9 h-9 rounded-xl flex items-center justify-center bg-white/10 border border-white/15 shadow-inner ${visuals.accentColor}`}>
-                  <visuals.Icon size={20} />
-                </div>
-                <div className="flex items-baseline gap-2">
-                  <span className="text-2xl sm:text-3xl font-black tracking-tight text-white drop-shadow">
-                    {weather.temp}°C
-                  </span>
-                  <span className="text-xs font-black uppercase tracking-wider text-amber-300">
-                    {weather.condition}
-                  </span>
-                </div>
+          {/* Top Left Floating Weather Capsule & Atmosphere Controls */}
+          <div className="flex flex-wrap items-center gap-3 mb-10 sm:mb-14">
+            <div className="inline-flex items-center gap-2.5 px-4 py-2 rounded-full bg-white/75 dark:bg-slate-900/80 backdrop-blur-xl border border-white/80 dark:border-white/15 shadow-sm text-slate-900 dark:text-white text-xs sm:text-sm font-semibold">
+              <div className="w-6 h-6 rounded-lg flex items-center justify-center bg-white/90 dark:bg-white/15 text-slate-700 dark:text-slate-200 shadow-2xs">
+                <visuals.Icon size={14} className={visuals.accentColor} />
               </div>
-
-              <div className="hidden sm:block h-5 w-px bg-white/20" />
-
-              {/* Exact UV Index Number & Standard Scale Transformation */}
-              <div className="flex items-center gap-2" title={uv.recommendation}>
-                <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-black shadow-md ${uv.badgeBg}`}>
-                  <span className={`w-2 h-2 rounded-full ${uv.dotColor} animate-pulse`} />
-                  <span>Índice UV {uv.value} · {uv.level}</span>
-                </span>
-                <span className="hidden md:inline text-[11px] text-slate-300 font-semibold">
-                  ({uv.recommendation})
-                </span>
-              </div>
-
-              <div className="hidden sm:block h-5 w-px bg-white/20" />
-
-              {/* Marine Wind & Humidity */}
-              <div className="hidden sm:flex items-center gap-3 text-xs text-slate-200 font-bold">
-                <span className="flex items-center gap-1.5" title="Viento costero">
-                  <Wind size={14} className="text-sky-400" />
-                  <span>{weather.windSpeedKmH} km/h</span>
-                </span>
-                <span className="text-white/30">·</span>
-                <span className="flex items-center gap-1.5" title="Humedad relativa">
-                  <Droplets size={14} className="text-cyan-400" />
-                  <span>{weather.humidity}%</span>
-                </span>
-              </div>
+              <span className="font-semibold text-slate-800 dark:text-slate-200">
+                {weather.condition || visuals.label}
+              </span>
+              <span className="text-slate-400 dark:text-white/40">·</span>
+              <span className="font-bold text-slate-950 dark:text-white">
+                {weather.temp}°C
+              </span>
+              <span className="text-slate-400 dark:text-white/40">·</span>
+              <span className={`px-2 py-0.5 rounded-full text-[11px] font-black shadow-xs ${uv.badgeBg}`}>
+                UV {uv.value}
+              </span>
             </div>
 
-            {/* Atmosphere Preview Controls (Allows testing sunny, cloudy, sunset, night background styles) */}
+            {/* Atmosphere Preview Controls */}
             {onSetPreviewCondition && (
-              <div className="inline-flex items-center gap-1 p-1 rounded-xl bg-[#07111e]/90 backdrop-blur-xl border border-white/20 text-[11px] shadow-lg">
+              <div className="hidden sm:inline-flex items-center gap-1 p-1 rounded-full bg-white/60 dark:bg-slate-900/70 backdrop-blur-md border border-white/60 dark:border-white/15 text-[11px] shadow-2xs">
                 <button
                   onClick={() => onSetPreviewCondition(null)}
-                  className={`px-3 py-1 rounded-lg font-black btn-tactile cursor-pointer ${
-                    !previewCondition ? 'bg-white text-slate-950 shadow-sm scale-[1.02]' : 'text-slate-200 hover:text-white hover:bg-white/10'
+                  className={`px-2.5 py-1 rounded-full font-bold btn-tactile cursor-pointer ${
+                    !previewCondition ? 'bg-slate-900 text-white shadow-2xs' : 'text-slate-600 dark:text-slate-300 hover:text-slate-900'
                   }`}
-                  title="Restaurar clima en vivo de Capitanía de Puerto"
+                  title="Restaurar clima en vivo"
                 >
                   🔴 En vivo
                 </button>
                 <button
                   onClick={() => onSetPreviewCondition('clear')}
-                  className={`px-3 py-1 rounded-lg font-black btn-tactile cursor-pointer ${
-                    previewCondition === 'clear' ? 'bg-amber-400 text-slate-950 shadow-sm scale-[1.02]' : 'text-slate-200 hover:text-white hover:bg-white/10'
+                  className={`px-2.5 py-1 rounded-full font-bold btn-tactile cursor-pointer ${
+                    previewCondition === 'clear' ? 'bg-amber-400 text-slate-950 shadow-2xs' : 'text-slate-600 dark:text-slate-300 hover:text-slate-900'
                   }`}
                 >
                   ☀️ Soleado
                 </button>
                 <button
                   onClick={() => onSetPreviewCondition('cloudy')}
-                  className={`px-3 py-1 rounded-lg font-black btn-tactile cursor-pointer ${
-                    previewCondition === 'cloudy' ? 'bg-slate-200 text-slate-950 shadow-sm scale-[1.02]' : 'text-slate-200 hover:text-white hover:bg-white/10'
+                  className={`px-2.5 py-1 rounded-full font-bold btn-tactile cursor-pointer ${
+                    previewCondition === 'cloudy' ? 'bg-slate-300 text-slate-950 shadow-2xs' : 'text-slate-600 dark:text-slate-300 hover:text-slate-900'
                   }`}
                 >
                   ☁️ Nublado
                 </button>
                 <button
                   onClick={() => onSetPreviewCondition('sunset')}
-                  className={`px-3 py-1 rounded-lg font-black btn-tactile cursor-pointer ${
-                    previewCondition === 'sunset' ? 'bg-orange-500 text-white shadow-sm scale-[1.02]' : 'text-slate-200 hover:text-white hover:bg-white/10'
+                  className={`px-2.5 py-1 rounded-full font-bold btn-tactile cursor-pointer ${
+                    previewCondition === 'sunset' ? 'bg-orange-500 text-white shadow-2xs' : 'text-slate-600 dark:text-slate-300 hover:text-slate-900'
                   }`}
                 >
                   🌅 Atardecer
                 </button>
                 <button
                   onClick={() => onSetPreviewCondition('night')}
-                  className={`px-3 py-1 rounded-lg font-black btn-tactile cursor-pointer ${
-                    previewCondition === 'night' ? 'bg-indigo-600 text-white shadow-sm scale-[1.02]' : 'text-slate-200 hover:text-white hover:bg-white/10'
+                  className={`px-2.5 py-1 rounded-full font-bold btn-tactile cursor-pointer ${
+                    previewCondition === 'night' ? 'bg-indigo-600 text-white shadow-2xs' : 'text-slate-600 dark:text-slate-300 hover:text-slate-900'
                   }`}
                 >
                   🌙 Noche
@@ -168,38 +144,51 @@ export default function Hero3D({
             )}
           </div>
 
-          <h1 className="text-4xl sm:text-6xl md:text-7xl font-black tracking-tight mb-5 text-white drop-shadow-[0_4px_8px_rgba(0,0,0,0.6)]">
-            Arica, de forma <span className="text-brand-300 drop-shadow-md">inclusiva</span>
+          {/* Eyebrow Label matching reference image */}
+          <div className="flex items-center gap-2 text-xs sm:text-sm font-extrabold uppercase tracking-widest text-slate-600/90 dark:text-slate-400 mb-3.5">
+            <Sparkles size={15} className="text-slate-500 dark:text-slate-400" />
+            <span>Descubre la Eterna Primavera</span>
+          </div>
+
+          {/* Main Title matching reference layout: 2 lines, authoritative editorial */}
+          <h1 className="text-5xl sm:text-6xl md:text-7xl lg:text-[5.2rem] font-black tracking-tight text-slate-950 dark:text-white leading-[1.03] mb-5">
+            Arica, de forma <br />
+            <span className="text-slate-600/95 dark:text-slate-400 font-extrabold">inclusiva</span>
           </h1>
-          <p className="text-base sm:text-lg md:text-xl text-gray-100 mb-8 max-w-2xl mx-auto font-medium drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)] leading-relaxed">
-            Explora los atractivos turísticos de la ciudad con un mapa interactivo diseñado para todos. Accesibilidad universal y sin barreras.
+
+          {/* Description paragraph matching reference */}
+          <p className="text-base sm:text-lg text-slate-700 dark:text-slate-300 font-normal sm:font-medium leading-relaxed max-w-xl mb-8 sm:mb-9">
+            Explora los atractivos turísticos de la ciudad con un mapa interactivo diseñado para todos. Accesibilidad total y sin barreras.
           </p>
-          
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
+
+          {/* Action Buttons matching reference image */}
+          <div className="flex flex-wrap items-center gap-4">
             <a
               href="#mapa"
-              className="px-8 py-4 rounded-full bg-accent-500 hover:bg-accent-600 text-white font-black text-sm tracking-wide transition-all duration-150 ease-out shadow-[0_4px_20px_rgba(249,115,22,0.5)] hover:shadow-[0_4px_25px_rgba(249,115,22,0.7)] hover:scale-[1.03] active:scale-[0.97] btn-tactile cursor-pointer"
+              className="px-7 py-3.5 rounded-full bg-slate-900 hover:bg-slate-800 text-white font-bold text-sm tracking-wide shadow-lg shadow-slate-950/20 flex items-center gap-2.5 btn-tactile hover:scale-[1.02] active:scale-[0.98] cursor-pointer"
             >
-              Explorar el Mapa
+              <Map size={18} />
+              <span>Explorar el Mapa</span>
             </a>
             <a
               href="#lugares"
-              className="px-8 py-4 rounded-full bg-white/15 hover:bg-white/25 text-white font-bold text-sm tracking-wide transition-all duration-150 ease-out shadow-lg backdrop-blur-md border border-white/40 hover:scale-[1.03] active:scale-[0.97] btn-tactile cursor-pointer"
+              className="px-7 py-3.5 rounded-full bg-white/40 hover:bg-white/60 dark:bg-white/10 dark:hover:bg-white/20 text-slate-800 hover:text-slate-950 dark:text-white font-bold text-sm tracking-wide shadow-xs backdrop-blur-md border border-slate-400/50 dark:border-white/30 flex items-center gap-2.5 btn-tactile hover:scale-[1.02] active:scale-[0.98] cursor-pointer"
             >
-              Ver Lugares
+              <List size={18} />
+              <span>Ver Lugares</span>
             </a>
           </div>
         </motion.div>
       </div>
-      
+
       {/* Scroll indicator */}
       <motion.div 
-        animate={{ y: [0, 10, 0] }} 
+        animate={{ y: [0, 8, 0] }} 
         transition={{ repeat: Infinity, duration: 2 }}
-        className="absolute bottom-10 left-1/2 -translate-x-1/2 z-10 opacity-90"
+        className="absolute bottom-6 left-1/2 -translate-x-1/2 z-10 opacity-75 hidden sm:block"
       >
-        <div className="w-[30px] h-[50px] border-2 border-white/60 rounded-full flex justify-center p-2 bg-black/20 backdrop-blur-sm shadow-sm">
-          <div className="w-1 h-3 bg-white rounded-full shadow-sm" />
+        <div className="w-[28px] h-[46px] border-2 border-slate-600 dark:border-white/60 rounded-full flex justify-center p-1.5 bg-black/10 backdrop-blur-xs shadow-xs">
+          <div className="w-1 h-2.5 bg-slate-700 dark:bg-white rounded-full shadow-xs" />
         </div>
       </motion.div>
     </section>
