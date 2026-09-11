@@ -14,49 +14,44 @@ export function getUvDetails(uv) {
     return {
       value: num,
       level: 'Bajo',
-      colorText: 'text-emerald-300',
-      badgeBg: 'bg-emerald-500/25 border-emerald-400/40 text-emerald-200',
-      dotColor: 'bg-emerald-400',
-      recommendation: 'Exposición segura sin riesgo significativo'
+      badgeBg: 'bg-emerald-400 text-slate-950 font-black shadow-xs',
+      dotColor: 'bg-slate-950',
+      recommendation: 'Exposición segura'
     };
   }
   if (num <= 5) {
     return {
       value: num,
       level: 'Moderado',
-      colorText: 'text-amber-300',
-      badgeBg: 'bg-amber-500/25 border-amber-400/40 text-amber-200',
-      dotColor: 'bg-amber-400',
-      recommendation: 'Uso de sombrero, gafas y protector SPF 30+'
+      badgeBg: 'bg-amber-400 text-slate-950 font-black shadow-xs',
+      dotColor: 'bg-slate-950',
+      recommendation: 'Usar bloqueador solar'
     };
   }
   if (num <= 7) {
     return {
       value: num,
       level: 'Alto',
-      colorText: 'text-orange-300',
-      badgeBg: 'bg-orange-500/25 border-orange-400/40 text-orange-200',
-      dotColor: 'bg-orange-400',
-      recommendation: 'Buscar sombra al mediodía y protector SPF 50+'
+      badgeBg: 'bg-orange-500 text-white font-black shadow-xs',
+      dotColor: 'bg-white',
+      recommendation: 'Buscar sombra y protector 50+'
     };
   }
   if (num <= 10) {
     return {
       value: num,
       level: 'Muy Alto',
-      colorText: 'text-rose-300',
-      badgeBg: 'bg-rose-500/25 border-rose-400/40 text-rose-200',
-      dotColor: 'bg-rose-400',
-      recommendation: 'Evitar sol directo entre 11:00 y 16:00 hrs'
+      badgeBg: 'bg-red-600 text-white font-black shadow-xs',
+      dotColor: 'bg-white',
+      recommendation: 'Evitar sol directo'
     };
   }
   return {
     value: num,
     level: 'Extremo',
-    colorText: 'text-purple-300',
-    badgeBg: 'bg-purple-500/25 border-purple-400/40 text-purple-200',
-    dotColor: 'bg-purple-400',
-    recommendation: '¡Peligro extremo de radiación! Protección máxima'
+    badgeBg: 'bg-purple-600 text-white font-black shadow-xs',
+    dotColor: 'bg-white',
+    recommendation: '¡Radiación extrema!'
   };
 }
 

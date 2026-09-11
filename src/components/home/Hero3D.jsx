@@ -74,43 +74,47 @@ export default function Hero3D({
           transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1], delay: 0.15 }}
         >
           {/* Live Weather & UV Glass Capsule over Hero */}
-          <div className="inline-flex flex-col items-center gap-2 mb-4">
-            <div className="inline-flex flex-wrap items-center justify-center gap-2 sm:gap-3.5 px-4 py-2 rounded-2xl glass-card bg-slate-950/50 backdrop-blur-xl border border-white/30 text-white shadow-2xl">
+          <div className="inline-flex flex-col items-center gap-2 mb-5">
+            <div className="inline-flex flex-wrap items-center justify-center gap-2.5 sm:gap-4 px-5 py-2.5 rounded-2xl bg-[#07111e]/90 backdrop-blur-2xl border border-white/20 text-white shadow-[0_12px_36px_rgba(0,0,0,0.6),inset_0_1px_1px_rgba(255,255,255,0.25)]">
               {/* Temperature & Live status */}
-              <div className="flex items-center gap-2">
-                <div className={`w-8 h-8 rounded-xl flex items-center justify-center bg-white/10 border border-white/20 shadow-inner ${visuals.accentColor}`}>
-                  <visuals.Icon size={18} />
+              <div className="flex items-center gap-2.5">
+                <div className={`w-9 h-9 rounded-xl flex items-center justify-center bg-white/10 border border-white/15 shadow-inner ${visuals.accentColor}`}>
+                  <visuals.Icon size={20} />
                 </div>
-                <div className="flex items-baseline gap-1.5">
-                  <span className="text-xl sm:text-2xl font-black tracking-tight">{weather.temp}°C</span>
-                  <span className="text-xs font-bold text-white/90">{weather.condition}</span>
+                <div className="flex items-baseline gap-2">
+                  <span className="text-2xl sm:text-3xl font-black tracking-tight text-white drop-shadow">
+                    {weather.temp}°C
+                  </span>
+                  <span className="text-xs font-black uppercase tracking-wider text-amber-300">
+                    {weather.condition}
+                  </span>
                 </div>
               </div>
 
-              <div className="hidden sm:block h-4 w-px bg-white/25" />
+              <div className="hidden sm:block h-5 w-px bg-white/20" />
 
               {/* Exact UV Index Number & Standard Scale Transformation */}
-              <div className="flex items-center gap-1.5" title={uv.recommendation}>
-                <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-black border backdrop-blur-md shadow-xs ${uv.badgeBg}`}>
+              <div className="flex items-center gap-2" title={uv.recommendation}>
+                <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-black shadow-md ${uv.badgeBg}`}>
                   <span className={`w-2 h-2 rounded-full ${uv.dotColor} animate-pulse`} />
                   <span>Índice UV {uv.value} · {uv.level}</span>
                 </span>
-                <span className="hidden md:inline text-[11px] text-white/80 font-medium">
+                <span className="hidden md:inline text-[11px] text-slate-300 font-semibold">
                   ({uv.recommendation})
                 </span>
               </div>
 
-              <div className="hidden sm:block h-4 w-px bg-white/25" />
+              <div className="hidden sm:block h-5 w-px bg-white/20" />
 
               {/* Marine Wind & Humidity */}
-              <div className="hidden sm:flex items-center gap-3 text-xs text-white/90 font-semibold">
-                <span className="flex items-center gap-1" title="Viento costero">
-                  <Wind size={13} className="text-sky-300" />
+              <div className="hidden sm:flex items-center gap-3 text-xs text-slate-200 font-bold">
+                <span className="flex items-center gap-1.5" title="Viento costero">
+                  <Wind size={14} className="text-sky-400" />
                   <span>{weather.windSpeedKmH} km/h</span>
                 </span>
-                <span className="text-white/40">·</span>
-                <span className="flex items-center gap-1" title="Humedad relativa">
-                  <Droplets size={13} className="text-blue-300" />
+                <span className="text-white/30">·</span>
+                <span className="flex items-center gap-1.5" title="Humedad relativa">
+                  <Droplets size={14} className="text-cyan-400" />
                   <span>{weather.humidity}%</span>
                 </span>
               </div>
@@ -118,11 +122,11 @@ export default function Hero3D({
 
             {/* Atmosphere Preview Controls (Allows testing sunny, cloudy, sunset, night background styles) */}
             {onSetPreviewCondition && (
-              <div className="inline-flex items-center gap-1 p-1 rounded-xl bg-black/40 backdrop-blur-md border border-white/20 text-[11px]">
+              <div className="inline-flex items-center gap-1 p-1 rounded-xl bg-[#07111e]/90 backdrop-blur-xl border border-white/20 text-[11px] shadow-lg">
                 <button
                   onClick={() => onSetPreviewCondition(null)}
-                  className={`px-2.5 py-1 rounded-lg font-bold btn-tactile cursor-pointer ${
-                    !previewCondition ? 'bg-white text-brand-600 shadow-xs scale-[1.02]' : 'text-white/80 hover:text-white'
+                  className={`px-3 py-1 rounded-lg font-black btn-tactile cursor-pointer ${
+                    !previewCondition ? 'bg-white text-slate-950 shadow-sm scale-[1.02]' : 'text-slate-200 hover:text-white hover:bg-white/10'
                   }`}
                   title="Restaurar clima en vivo de Capitanía de Puerto"
                 >
@@ -130,32 +134,32 @@ export default function Hero3D({
                 </button>
                 <button
                   onClick={() => onSetPreviewCondition('clear')}
-                  className={`px-2.5 py-1 rounded-lg font-bold btn-tactile cursor-pointer ${
-                    previewCondition === 'clear' ? 'bg-amber-400 text-slate-950 shadow-xs scale-[1.02]' : 'text-white/80 hover:text-white'
+                  className={`px-3 py-1 rounded-lg font-black btn-tactile cursor-pointer ${
+                    previewCondition === 'clear' ? 'bg-amber-400 text-slate-950 shadow-sm scale-[1.02]' : 'text-slate-200 hover:text-white hover:bg-white/10'
                   }`}
                 >
                   ☀️ Soleado
                 </button>
                 <button
                   onClick={() => onSetPreviewCondition('cloudy')}
-                  className={`px-2.5 py-1 rounded-lg font-bold btn-tactile cursor-pointer ${
-                    previewCondition === 'cloudy' ? 'bg-slate-200 text-slate-900 shadow-xs scale-[1.02]' : 'text-white/80 hover:text-white'
+                  className={`px-3 py-1 rounded-lg font-black btn-tactile cursor-pointer ${
+                    previewCondition === 'cloudy' ? 'bg-slate-200 text-slate-950 shadow-sm scale-[1.02]' : 'text-slate-200 hover:text-white hover:bg-white/10'
                   }`}
                 >
                   ☁️ Nublado
                 </button>
                 <button
                   onClick={() => onSetPreviewCondition('sunset')}
-                  className={`px-2.5 py-1 rounded-lg font-bold btn-tactile cursor-pointer ${
-                    previewCondition === 'sunset' ? 'bg-orange-500 text-white shadow-xs scale-[1.02]' : 'text-white/80 hover:text-white'
+                  className={`px-3 py-1 rounded-lg font-black btn-tactile cursor-pointer ${
+                    previewCondition === 'sunset' ? 'bg-orange-500 text-white shadow-sm scale-[1.02]' : 'text-slate-200 hover:text-white hover:bg-white/10'
                   }`}
                 >
                   🌅 Atardecer
                 </button>
                 <button
                   onClick={() => onSetPreviewCondition('night')}
-                  className={`px-2.5 py-1 rounded-lg font-bold btn-tactile cursor-pointer ${
-                    previewCondition === 'night' ? 'bg-indigo-600 text-white shadow-xs scale-[1.02]' : 'text-white/80 hover:text-white'
+                  className={`px-3 py-1 rounded-lg font-black btn-tactile cursor-pointer ${
+                    previewCondition === 'night' ? 'bg-indigo-600 text-white shadow-sm scale-[1.02]' : 'text-slate-200 hover:text-white hover:bg-white/10'
                   }`}
                 >
                   🌙 Noche
