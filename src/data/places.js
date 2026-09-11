@@ -16,6 +16,15 @@ export const defaultPlaces = [
     bestTime: "11:00 a 19:30 para sol pleno y baño tranquilo",
     tips: "El mejor balneario para nadar con niños porque casi no tiene olas. Hay arriendo de reposeras y sombrillas.",
     accessibility: { wheelchair: true, ramps: true, adaptedBathrooms: true, notes: "Playa inclusiva con pasarela de madera hasta el mar y apoyo en verano." },
+    beachInfo: {
+      status: "Apta para Baño",
+      flag: "green",
+      flagLabel: "Bandera Verde · Apta para Baño",
+      waves: "0.5 m",
+      waterTemp: "19°C",
+      type: "Familiar & Natación",
+      desc: "Piscina natural de aguas calmas y templadas con rampas de accesibilidad universal."
+    },
     photos: ["images/places/laucho.jpg"], is24h: true, isDefault: true,
     transport: { lineas: ["12", "14", "10", "8"], direccion: "sur", letrero: "Centro / Mall", parada: "Av. Comandante San Martín" }
   },
@@ -135,6 +144,15 @@ export const defaultPlaces = [
     bestTime: "Tardes de 15:30 a 20:30 para caminatas y puestas de sol",
     tips: "Excelente para salir a correr o pasear en bicicleta por su costanera iluminada.",
     accessibility: { wheelchair: true, ramps: true, adaptedBathrooms: true, notes: "Paseo peatonal y costanera completamente planos y pavimentados." },
+    beachInfo: {
+      status: "Apta para Baño",
+      flag: "green",
+      flagLabel: "Bandera Verde · Apta para Baño",
+      waves: "0.8 m",
+      waterTemp: "20°C",
+      type: "Aguas Cálidas & Costanera",
+      desc: "Extensa costanera con oleaje moderado y variada gastronomía frente al mar."
+    },
     photos: ["images/places/chinchorro.jpg"], is24h: true, isDefault: true,
     transport: { lineas: ["12", "14"], direccion: "norte", letrero: "Centro / Mall", parada: "España con Buenos Aires" }
   },
@@ -222,5 +240,57 @@ export const defaultPlaces = [
     accessibility: { wheelchair: false, ramps: false, adaptedBathrooms: true, notes: "Senderos de tierra volcánica; precaución por altitud geográfica extrema." },
     photos: ["images/places/morro.jpg"], is24h: false, isDefault: true,
     transport: { lineas: ["Tours guiados", "Buses a Putre"], direccion: "cordillera", letrero: "Putre / Tambo Quemado", parada: "Refugio CONAF Chungará" }
+  },
+  {
+    id: 14, icon: "Waves", name: "Playa Las Machas", category: "Playa", type: "turismo",
+    lat: -18.4412, lng: -70.3001, color: "#EF4444",
+    image: "images/places/chinchorro.jpg",
+    audioFile: "",
+    shortDesc: "Extensa playa de oleaje oceánico fuerte y paraíso predilecto para el surf y bodyboard.",
+    fullDesc: "Playa Las Machas continúa hacia el norte desde Chinchorro. Sus corrientes vivas y fondo marino abierto la hacen no apta para el baño tradicional, pero un punto de encuentro de clase mundial para surfistas y practicantes de bodyboard que disfrutan de sus olas constantes.",
+    directions: "Av. Raúl Pey Casado hacia el norte, pasado el Hotel Arica. Micros 12 y 14.",
+    hours: "Abierta todo el año · 24 horas",
+    phone: "", website: "", priceRange: "Gratis",
+    entryFee: "Acceso libre y público",
+    bestTime: "Mañanas tempranas para mejores condiciones de viento y surf",
+    tips: "No ingresar a nadar debido a las corrientes de resaca; ideal para caminatas al atardecer y fotografía deportiva.",
+    accessibility: { wheelchair: true, ramps: false, adaptedBathrooms: false, notes: "Costanera pavimentada transitable; arena blanda no adaptada." },
+    beachInfo: {
+      status: "No Apta para Baño",
+      flag: "red",
+      flagLabel: "Bandera Roja · Peligro de Marejadas",
+      waves: "1.6 m",
+      waterTemp: "18°C",
+      type: "Surf & Bodyboard",
+      desc: "Corrientes oceánicas fuertes, arena oscura y el paraíso para surfistas locales."
+    },
+    photos: ["images/places/chinchorro.jpg"], is24h: true, isDefault: true,
+    transport: { lineas: ["12", "14"], direccion: "norte", letrero: "Las Machas", parada: "Av. Raúl Pey" }
+  },
+  {
+    id: 15, icon: "Compass", name: "Ex Isla El Alacrán (El Gringo)", category: "Playa", type: "turismo",
+    lat: -18.4800, lng: -70.3340, color: "#6366F1",
+    image: "images/places/morro.jpg",
+    audioFile: "",
+    shortDesc: "Península histórica frente al Morro que alberga 'El Gringo', la ola tubular más famosa del surf mundial.",
+    fullDesc: "Antigua isla guanera unida al continente en 1964, la Ex Isla Alacrán es Monumento Histórico Nacional con vestigios de fortificaciones españolas. Sus rompientes rocosas dan origen a 'El Gringo', una ola tubular izquierda y derecha de nivel extremo que es sede permanente del circuito mundial WSL.",
+    directions: "Frente al Puerto de Arica y Club de Yates, acceso por camino costero peatonal y vehicular.",
+    hours: "Abierta todo el año · 24 horas",
+    phone: "", website: "", priceRange: "Gratis",
+    entryFee: "Acceso libre y gratuito",
+    bestTime: "Puestas de sol y campeonatos mundiales de surf durante el invierno",
+    tips: "Zona de fondo rocoso; el baño está reservado exclusivamente a surfistas con equipo especializado y casco.",
+    accessibility: { wheelchair: true, ramps: true, adaptedBathrooms: false, notes: "Camino perimetral plano con vistas 360° al Morro y la bahía." },
+    beachInfo: {
+      status: "Solo Surfistas Expertos",
+      flag: "black",
+      flagLabel: "Bandera Negra · Expertos WSL",
+      waves: "2.2 m",
+      waterTemp: "17°C",
+      type: "Ola Tubular WSL",
+      desc: "Fondo rocoso con olas tubulares peligrosas que albergan campeonatos mundiales WSL."
+    },
+    photos: ["images/places/morro.jpg"], is24h: true, isDefault: true,
+    transport: { lineas: ["1", "2", "3", "7", "8", "10"], direccion: "centro", letrero: "Puerto / Morro", parada: "Península Alacrán" }
   }
 ];

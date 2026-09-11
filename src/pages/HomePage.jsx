@@ -10,7 +10,6 @@ import AssistantModal from '../components/shared/AssistantModal';
 import PlaceDetailModal from '../components/shared/PlaceDetailModal';
 import PWAInstallPrompt from '../components/shared/PWAInstallPrompt';
 import EventPopupModal from '../components/shared/EventPopupModal';
-import CoastalSurfWidget from '../components/home/CoastalSurfWidget';
 import GastronomyHighlights from '../components/home/GastronomyHighlights';
 import ItineraryPlannerModal from '../components/shared/ItineraryPlannerModal';
 import { usePlaces } from '../contexts/PlacesContext';
@@ -220,7 +219,7 @@ export default function HomePage() {
   };
 
   return (
-    <div className={`min-h-screen ${climateTheme.bgClass} ${climateTheme.textColor} font-sans selection:bg-brand-500/30 selection:text-brand-600 transition-colors duration-1000 relative overflow-x-hidden`}>
+    <div className={`min-h-screen ${climateTheme.bgClass} ${climateTheme.textColor} ${activeCondition === 'night' ? 'theme-night' : ''} font-sans selection:bg-brand-500/30 selection:text-brand-600 transition-colors duration-1000 relative overflow-x-hidden`}>
       {/* Fondo ambiental dinámico según el clima de Arica (Soleado, Nublado, Atardecer, Noche) */}
       <div className="fixed inset-0 pointer-events-none z-0 overflow-hidden">
         {climateTheme.ambientGradients}
@@ -228,7 +227,22 @@ export default function HomePage() {
 
       <div className="relative z-10">
         <Navigation />
-        <Hero3D />
+        <Hero3D
+          weatherData={liveWeather ? {
+            temp: liveWeather.current.temp,
+            condition: previewCondition ? (previewCondition === 'clear' ? 'Soleado' : previewCondition === 'cloudy' ? 'Nublado' : previewCondition === 'sunset' ? 'Atardecer' : 'Noche Despejada') : liveWeather.current.condition,
+            conditionType: activeCondition,
+            conditionDesc: previewCondition ? (previewCondition === 'clear' ? 'Sol radiante de Eterna Primavera' : previewCondition === 'cloudy' ? 'Cielo cubierto con nubosidad costera' : previewCondition === 'sunset' ? 'Atardecer dorado frente al Pacífico' : 'Noche serena bajo el cielo del norte') : liveWeather.current.conditionDesc,
+            humidity: liveWeather.current.humidity,
+            windSpeedKmH: liveWeather.current.windSpeedKmH,
+            windDirection: liveWeather.current.windDirection,
+            uvIndex: previewCondition === 'night' ? 0 : previewCondition === 'cloudy' ? 1 : liveWeather.current.uvIndex,
+            stationName: liveWeather.station?.name || 'Arica - Capitanía de Puerto'
+          } : null}
+          activeCondition={activeCondition}
+          previewCondition={previewCondition}
+          onSetPreviewCondition={setPreviewCondition}
+        />
 
         <AccessibilityToolbar
           onAssistantClick={() => setShowAssistant(true)}
@@ -239,8 +253,8 @@ export default function HomePage() {
 
         {showAssistant && <AssistantModal onClose={() => setShowAssistant(false)} />}
 
-        {/* Travel Hub Section (Itinerary Planner + Live Beach Conditions) */}
-        <section className="max-w-6xl mx-auto px-4 sm:px-6 pt-12 sm:pt-16 pb-4 space-y-6">
+        {/* Travel Hub Section (Itinerary Planner) */}
+        <section className="max-w-6xl mx-auto px-4 sm:px-6 pt-10 sm:pt-14 pb-2">
           {/* Smart Itinerary Planner CTA Banner */}
           <div className="glass-card rounded-3xl p-6 sm:p-7 shadow-xl shadow-sky-950/5 border border-white/80 flex flex-col sm:flex-row items-center justify-between gap-5 relative overflow-hidden backdrop-blur-xl">
             <div className="absolute top-0 right-0 w-80 h-full bg-gradient-to-l from-amber-100/30 via-sky-100/20 to-transparent pointer-events-none" />
@@ -265,41 +279,12 @@ export default function HomePage() {
 
             <button
               onClick={() => setShowPlanner(true)}
-              className="px-6 py-3.5 rounded-xl bg-gradient-to-r from-accent-500 to-amber-500 hover:from-accent-600 hover:to-amber-600 text-white font-black text-xs sm:text-sm shadow-lg shadow-orange-500/25 transition-all hover:scale-105 active:scale-95 shrink-0 flex items-center gap-2 z-10 cursor-pointer"
+              className="px-6 py-3.5 rounded-xl bg-gradient-to-r from-accent-500 to-amber-500 hover:from-accent-600 hover:to-amber-600 text-white font-black text-xs sm:text-sm shadow-lg shadow-orange-500/25 btn-tactile hover:scale-[1.03] active:scale-[0.97] shrink-0 flex items-center gap-2 z-10 cursor-pointer"
             >
               <Sparkles size={16} />
               <span>Armar Mi Itinerario</span>
             </button>
           </div>
-
-          {/* Coastal Surf & Beaches Live Widget */}
-          <CoastalSurfWidget
-            weatherData={liveWeather ? {
-              temp: liveWeather.current.temp,
-              condition: previewCondition ? (previewCondition === 'clear' ? 'Soleado' : previewCondition === 'cloudy' ? 'Nublado' : previewCondition === 'sunset' ? 'Atardecer' : 'Noche Despejada') : liveWeather.current.condition,
-              conditionType: activeCondition,
-              conditionDesc: previewCondition ? (previewCondition === 'clear' ? 'Sol radiante de Eterna Primavera' : previewCondition === 'cloudy' ? 'Cielo cubierto con nubosidad costera' : previewCondition === 'sunset' ? 'Atardecer dorado frente al Pacífico' : 'Noche serena bajo el cielo del norte') : liveWeather.current.conditionDesc,
-              humidity: liveWeather.current.humidity,
-              windSpeedKmH: liveWeather.current.windSpeedKmH,
-              windDirection: liveWeather.current.windDirection,
-              uvIndex: previewCondition === 'night' ? 0 : previewCondition === 'cloudy' ? 1 : liveWeather.current.uvIndex,
-              stationName: liveWeather.station?.name || 'Arica - Capitanía de Puerto',
-              lastUpdate: liveWeather.station?.lastUpdate
-                ? new Date(liveWeather.station.lastUpdate).toLocaleTimeString('es-CL', { hour: '2-digit', minute: '2-digit' })
-                : 'En vivo'
-            } : null}
-            activeCondition={activeCondition}
-            previewCondition={previewCondition}
-            onSetPreviewCondition={setPreviewCondition}
-            onSelectBeach={(beachName) => {
-              const match = places.find(p => p.name.toLowerCase().includes(beachName.toLowerCase()));
-              if (match) {
-                handleRouteClick(match);
-              } else {
-                document.getElementById('mapa')?.scrollIntoView({ behavior: 'smooth' });
-              }
-            }}
-          />
         </section>
 
         {/* Places Section */}

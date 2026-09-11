@@ -1,9 +1,11 @@
 import { motion } from 'framer-motion';
 import * as LucideIcons from 'lucide-react';
 import { getGoogleMapsUrl } from '../utils/navigation';
+import { getBeachInfo } from '../utils/weatherUtils';
 
 export default function PlaceCard({ place, onAudioClick, onRouteClick, onMoreClick }) {
   const IconComponent = LucideIcons[place.icon] || LucideIcons.MapPin;
+  const beach = getBeachInfo(place);
 
   return (
     <motion.article 
@@ -47,6 +49,38 @@ export default function PlaceCard({ place, onAudioClick, onRouteClick, onMoreCli
           <div className="flex items-center gap-1.5 mb-2.5 text-[11px] font-semibold text-gray-500">
             <LucideIcons.Bus size={13} className="text-accent-500 shrink-0" />
             <span className="truncate">Micros: {place.transport.lineas.slice(0, 4).join(', ')}{place.transport.lineas.length > 4 ? '...' : ''}</span>
+          </div>
+        )}
+
+        {/* Dynamic Beach & Maritime Info Pill */}
+        {beach && (
+          <div className="mb-3 p-2.5 rounded-xl bg-sky-50/90 border border-sky-200/80 text-slate-800 shadow-2xs">
+            <div className="flex items-center justify-between gap-1 text-[11px] font-extrabold mb-1.5">
+              <span className="flex items-center gap-1.5">
+                <span className={`w-2 h-2 rounded-full shrink-0 ${
+                  beach.flag === 'green' ? 'bg-emerald-500 animate-pulse' :
+                  beach.flag === 'red' ? 'bg-rose-500' : 'bg-slate-900'
+                }`} />
+                <span className={
+                  beach.flag === 'green' ? 'text-emerald-800' :
+                  beach.flag === 'red' ? 'text-rose-800' : 'text-slate-900'
+                }>{beach.flagLabel}</span>
+              </span>
+              <span className="px-2 py-0.5 rounded-md bg-white text-sky-700 text-[10px] font-black shadow-2xs border border-sky-100">
+                {beach.type}
+              </span>
+            </div>
+            <div className="flex items-center justify-between text-[11px] font-semibold text-slate-600 pt-1 border-t border-sky-200/50">
+              <span className="flex items-center gap-1">
+                <LucideIcons.Waves size={12} className="text-sky-500" />
+                <span>Olas: <strong className="text-slate-900">{beach.waves}</strong></span>
+              </span>
+              <span className="text-slate-300">·</span>
+              <span className="flex items-center gap-1">
+                <LucideIcons.Thermometer size={12} className="text-teal-600" />
+                <span>Agua: <strong className="text-slate-900">{beach.waterTemp}</strong></span>
+              </span>
+            </div>
           </div>
         )}
 
