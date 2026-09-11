@@ -275,8 +275,8 @@ export default function CoastalSurfWidget({
           <div className="flex items-center gap-1 bg-slate-100/90 p-1 rounded-xl border border-slate-200/80">
             <button
               onClick={() => onSetPreviewCondition(null)}
-              className={`px-2.5 py-1 rounded-lg text-[11px] font-bold transition-all cursor-pointer ${
-                !previewCondition ? 'bg-white text-brand-600 shadow-xs' : 'text-slate-600 hover:text-slate-900'
+              className={`px-2.5 py-1 rounded-lg text-[11px] font-bold btn-tactile cursor-pointer ${
+                !previewCondition ? 'bg-white text-brand-600 shadow-xs scale-[1.02]' : 'text-slate-600 hover:text-slate-900'
               }`}
               title="Volver a la observación en tiempo real de RedMeteo"
             >
@@ -284,32 +284,32 @@ export default function CoastalSurfWidget({
             </button>
             <button
               onClick={() => onSetPreviewCondition('clear')}
-              className={`px-2.5 py-1 rounded-lg text-[11px] font-bold transition-all cursor-pointer ${
-                previewCondition === 'clear' ? 'bg-white text-amber-600 shadow-xs' : 'text-slate-600 hover:text-slate-900'
+              className={`px-2.5 py-1 rounded-lg text-[11px] font-bold btn-tactile cursor-pointer ${
+                previewCondition === 'clear' ? 'bg-white text-amber-600 shadow-xs scale-[1.02]' : 'text-slate-600 hover:text-slate-900'
               }`}
             >
               ☀️ Soleado
             </button>
             <button
               onClick={() => onSetPreviewCondition('cloudy')}
-              className={`px-2.5 py-1 rounded-lg text-[11px] font-bold transition-all cursor-pointer ${
-                previewCondition === 'cloudy' ? 'bg-white text-slate-700 shadow-xs' : 'text-slate-600 hover:text-slate-900'
+              className={`px-2.5 py-1 rounded-lg text-[11px] font-bold btn-tactile cursor-pointer ${
+                previewCondition === 'cloudy' ? 'bg-white text-slate-700 shadow-xs scale-[1.02]' : 'text-slate-600 hover:text-slate-900'
               }`}
             >
               ☁️ Nublado
             </button>
             <button
               onClick={() => onSetPreviewCondition('sunset')}
-              className={`px-2.5 py-1 rounded-lg text-[11px] font-bold transition-all cursor-pointer ${
-                previewCondition === 'sunset' ? 'bg-white text-orange-600 shadow-xs' : 'text-slate-600 hover:text-slate-900'
+              className={`px-2.5 py-1 rounded-lg text-[11px] font-bold btn-tactile cursor-pointer ${
+                previewCondition === 'sunset' ? 'bg-white text-orange-600 shadow-xs scale-[1.02]' : 'text-slate-600 hover:text-slate-900'
               }`}
             >
               🌅 Atardecer
             </button>
             <button
               onClick={() => onSetPreviewCondition('night')}
-              className={`px-2.5 py-1 rounded-lg text-[11px] font-bold transition-all cursor-pointer ${
-                previewCondition === 'night' ? 'bg-white text-indigo-600 shadow-xs' : 'text-slate-600 hover:text-slate-900'
+              className={`px-2.5 py-1 rounded-lg text-[11px] font-bold btn-tactile cursor-pointer ${
+                previewCondition === 'night' ? 'bg-white text-indigo-600 shadow-xs scale-[1.02]' : 'text-slate-600 hover:text-slate-900'
               }`}
             >
               🌙 Noche
@@ -326,10 +326,10 @@ export default function CoastalSurfWidget({
             <button
               key={b.name}
               onClick={() => setSelectedBeach(idx)}
-              className={`text-left p-4 rounded-2xl transition-all border cursor-pointer ${
+              className={`text-left p-4 rounded-2xl btn-tactile border cursor-pointer ${
                 isSelected
                   ? 'bg-brand-500 text-white border-brand-500 shadow-lg shadow-brand-500/25 scale-[1.02]'
-                  : 'bg-slate-50 hover:bg-slate-100/80 text-slate-700 border-slate-200/70'
+                  : 'bg-slate-50 hover:bg-slate-100/80 text-slate-700 border-slate-200/70 hover:border-slate-300'
               }`}
             >
               <div className="flex items-center justify-between mb-1">
@@ -369,7 +369,7 @@ export default function CoastalSurfWidget({
           </div>
           <button
             onClick={handleViewOnMap}
-            className="px-5 py-3 bg-brand-500 hover:bg-brand-600 text-white rounded-xl text-xs font-black transition-all shadow-md shadow-brand-500/20 flex items-center gap-1.5 hover:scale-105 active:scale-95 shrink-0 cursor-pointer"
+            className="px-5 py-3 bg-brand-500 hover:bg-brand-600 text-white rounded-xl text-xs font-black shadow-md shadow-brand-500/20 flex items-center gap-1.5 btn-tactile hover:scale-[1.03] active:scale-[0.97] shrink-0 cursor-pointer"
           >
             <span>Ver en Mapa</span>
             <ChevronRight size={14} />

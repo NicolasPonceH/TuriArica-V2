@@ -1,9 +1,11 @@
 import { motion } from 'framer-motion';
 import * as LucideIcons from 'lucide-react';
 import { getGoogleMapsUrl } from '../utils/navigation';
+import { getBeachInfo } from '../utils/weatherUtils';
 
 export default function PlaceCard({ place, onAudioClick, onRouteClick, onMoreClick }) {
   const IconComponent = LucideIcons[place.icon] || LucideIcons.MapPin;
+  const beach = getBeachInfo(place);
 
   return (
     <motion.article 
@@ -11,7 +13,7 @@ export default function PlaceCard({ place, onAudioClick, onRouteClick, onMoreCli
       whileInView={{ opacity: 1, y: 0 }}
       viewport={{ once: true, margin: "-50px" }}
       whileHover={{ y: -5 }}
-      className="glass-panel rounded-2xl overflow-hidden flex flex-col h-full group bg-white shadow-md hover:shadow-2xl transition-all border border-gray-100"
+      className="glass-card rounded-2xl overflow-hidden flex flex-col h-full group bg-white/95 shadow-md hover:shadow-2xl card-tactile border border-white/80"
     >
       {/* Real Place Photo with Category and Icon Overlay */}
       <div className="h-44 sm:h-48 relative overflow-hidden bg-slate-900">
@@ -50,6 +52,38 @@ export default function PlaceCard({ place, onAudioClick, onRouteClick, onMoreCli
           </div>
         )}
 
+        {/* Dynamic Beach & Maritime Info Pill */}
+        {beach && (
+          <div className="mb-3 p-2.5 rounded-xl bg-sky-50/90 border border-sky-200/80 text-slate-800 shadow-2xs">
+            <div className="flex items-center justify-between gap-1 text-[11px] font-extrabold mb-1.5">
+              <span className="flex items-center gap-1.5">
+                <span className={`w-2 h-2 rounded-full shrink-0 ${
+                  beach.flag === 'green' ? 'bg-emerald-500 animate-pulse' :
+                  beach.flag === 'red' ? 'bg-rose-500' : 'bg-slate-900'
+                }`} />
+                <span className={
+                  beach.flag === 'green' ? 'text-emerald-800' :
+                  beach.flag === 'red' ? 'text-rose-800' : 'text-slate-900'
+                }>{beach.flagLabel}</span>
+              </span>
+              <span className="px-2 py-0.5 rounded-md bg-white text-sky-700 text-[10px] font-black shadow-2xs border border-sky-100">
+                {beach.type}
+              </span>
+            </div>
+            <div className="flex items-center justify-between text-[11px] font-semibold text-slate-600 pt-1 border-t border-sky-200/50">
+              <span className="flex items-center gap-1">
+                <LucideIcons.Waves size={12} className="text-sky-500" />
+                <span>Olas: <strong className="text-slate-900">{beach.waves}</strong></span>
+              </span>
+              <span className="text-slate-300">·</span>
+              <span className="flex items-center gap-1">
+                <LucideIcons.Thermometer size={12} className="text-teal-600" />
+                <span>Agua: <strong className="text-slate-900">{beach.waterTemp}</strong></span>
+              </span>
+            </div>
+          </div>
+        )}
+
         <p className="text-gray-600 text-xs sm:text-sm mb-5 flex-grow line-clamp-2 leading-relaxed">
           {place.shortDesc}
         </p>
@@ -57,7 +91,7 @@ export default function PlaceCard({ place, onAudioClick, onRouteClick, onMoreCli
         <div className="flex items-center gap-2 mt-auto pt-2 border-t border-gray-100">
           <button 
             onClick={() => onAudioClick(place)}
-            className="p-2.5 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-600 hover:text-brand-600 transition-colors"
+            className="p-2.5 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-600 hover:text-brand-600 transition-colors btn-tactile active:scale-95 cursor-pointer"
             title={`Escuchar descripción de ${place.name}`}
             aria-label={`Escuchar descripción de ${place.name}`}
           >
@@ -65,7 +99,7 @@ export default function PlaceCard({ place, onAudioClick, onRouteClick, onMoreCli
           </button>
           <button 
             onClick={() => onRouteClick(place)}
-            className="p-2.5 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-600 hover:text-brand-600 transition-colors"
+            className="p-2.5 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-600 hover:text-brand-600 transition-colors btn-tactile active:scale-95 cursor-pointer"
             title={`Trazar ruta en mapa web hacia ${place.name}`}
             aria-label={`Cómo llegar a ${place.name}`}
           >
@@ -75,7 +109,7 @@ export default function PlaceCard({ place, onAudioClick, onRouteClick, onMoreCli
             href={getGoogleMapsUrl(place.lat, place.lng, place.name)}
             target="_blank"
             rel="noopener noreferrer"
-            className="p-2.5 rounded-xl bg-blue-50 hover:bg-blue-100 text-blue-600 hover:text-blue-700 transition-colors flex items-center justify-center border border-blue-100"
+            className="p-2.5 rounded-xl bg-blue-50 hover:bg-blue-100 text-blue-600 hover:text-blue-700 transition-colors flex items-center justify-center border border-blue-100 btn-tactile active:scale-95 cursor-pointer"
             title={`Abrir ${place.name} en Google Maps (Navegación GPS)`}
             aria-label={`Abrir en Google Maps`}
           >
@@ -83,7 +117,7 @@ export default function PlaceCard({ place, onAudioClick, onRouteClick, onMoreCli
           </a>
           <button 
             onClick={() => onMoreClick(place)}
-            className="flex-1 py-2.5 px-4 rounded-xl bg-brand-50 hover:bg-brand-100 text-brand-600 hover:text-brand-700 font-bold text-xs sm:text-sm transition-colors border border-brand-100 text-center"
+            className="flex-1 py-2.5 px-4 rounded-xl bg-brand-50 hover:bg-brand-100 text-brand-600 hover:text-brand-700 font-bold text-xs sm:text-sm transition-colors border border-brand-100 text-center btn-tactile active:scale-[0.98] cursor-pointer"
           >
             Ver más
           </button>

@@ -1,14 +1,18 @@
 import { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { defaultPlaces } from '../data/places';
-import { getStoredPlaces, setStoredPlaces } from '../utils/storage';
+import { getStoredPlaces, setStoredPlaces, getDeletedPlaceIds, addDeletedPlaceId } from '../utils/storage';
 import { getCategoryMeta } from '../data/categories';
 import { API_BASE_URL } from '../utils/constants';
+import { GEODATA_UPDATED_EVENT } from '../data/mapGeoData';
 import { useAuth } from './AuthContext';
 
 const PlacesContext = createContext(null);
 
 export function PlacesProvider({ children }) {
-  const [places, setPlaces] = useState(defaultPlaces);
+  const [places, setPlaces] = useState(() => {
+    const deleted = getDeletedPlaceIds();
+    return defaultPlaces.filter(p => !deleted.includes(p.id));
+  });
   const [adminPlaces, setAdminPlaces] = useState([]);
   const [loading, setLoading] = useState(true);
   const [isSyncedWithBackend, setIsSyncedWithBackend] = useState(false);
@@ -16,14 +20,17 @@ export function PlacesProvider({ children }) {
 
   // 1. Fetch places from backend API on mount
   const fetchPlaces = useCallback(async () => {
+    const deletedIds = getDeletedPlaceIds();
     try {
       setLoading(true);
       const res = await fetch(`${API_BASE_URL}/places`);
       if (res.ok) {
         const data = await res.json();
         if (Array.isArray(data) && data.length > 0) {
+          // Filtrar lugares que hayan sido eliminados
+          const activePlaces = data.filter(p => !deletedIds.includes(p.id));
           // Normalize icons and colors
-          const normalized = data.map(p => {
+          const normalized = activePlaces.map(p => {
             const meta = getCategoryMeta(p.category);
             return {
               ...p,
@@ -46,13 +53,14 @@ export function PlacesProvider({ children }) {
       setLoading(false);
     }
 
-    // Fallback: Local storage + defaultPlaces
-    const stored = getStoredPlaces();
+    // Fallback: Local storage + defaultPlaces (excluyendo eliminados)
+    const stored = getStoredPlaces().filter(p => !deletedIds.includes(p.id));
+    const activeDefaults = defaultPlaces.filter(p => !deletedIds.includes(p.id));
     if (stored && stored.length > 0) {
       setAdminPlaces(stored);
-      setPlaces([...defaultPlaces, ...stored]);
+      setPlaces([...activeDefaults, ...stored]);
     } else {
-      setPlaces(defaultPlaces);
+      setPlaces(activeDefaults);
     }
     setIsSyncedWithBackend(false);
   }, []);
@@ -77,27 +85,28 @@ export function PlacesProvider({ children }) {
       videos: placeData.videos || []
     };
 
-    // Try backend if token exists
-    if (token) {
-      try {
-        const res = await fetch(`${API_BASE_URL}/places`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${token}`
-          },
-          body: JSON.stringify(payload)
-        });
+    // Try backend
+    try {
+      const res = await fetch(`${API_BASE_URL}/places`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {})
+        },
+        body: JSON.stringify(payload)
+      });
 
-        if (res.ok) {
-          const resData = await res.json();
-          const created = resData.place;
-          setPlaces(prev => [...prev, created]);
-          return created;
+      if (res.ok) {
+        const resData = await res.json();
+        const created = resData.place;
+        setPlaces(prev => [...prev, created]);
+        if (typeof window !== 'undefined') {
+          window.dispatchEvent(new CustomEvent(GEODATA_UPDATED_EVENT));
         }
-      } catch (e) {
-        console.warn('[PLACES] Falló guardado en backend, usando fallback local.', e);
+        return created;
       }
+    } catch (e) {
+      console.warn('[PLACES] Falló guardado en backend, usando fallback local.', e);
     }
 
     // Local fallback
@@ -114,6 +123,9 @@ export function PlacesProvider({ children }) {
       return updated;
     });
     setPlaces(prev => [...prev, localPlace]);
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent(GEODATA_UPDATED_EVENT));
+    }
     return localPlace;
   }, [places, token]);
 
@@ -126,25 +138,26 @@ export function PlacesProvider({ children }) {
       type: meta.type
     };
 
-    if (token) {
-      try {
-        const res = await fetch(`${API_BASE_URL}/places/${id}`, {
-          method: 'PUT',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${token}`
-          },
-          body: JSON.stringify(payload)
-        });
+    try {
+      const res = await fetch(`${API_BASE_URL}/places/${id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {})
+        },
+        body: JSON.stringify(payload)
+      });
 
-        if (res.ok) {
-          const resData = await res.json();
-          setPlaces(prev => prev.map(p => (p.id === id ? resData.place : p)));
-          return true;
+      if (res.ok) {
+        const resData = await res.json();
+        setPlaces(prev => prev.map(p => (p.id === id ? resData.place : p)));
+        if (typeof window !== 'undefined') {
+          window.dispatchEvent(new CustomEvent(GEODATA_UPDATED_EVENT));
         }
-      } catch (e) {
-        console.warn('[PLACES] Falló actualización en backend, usando local.', e);
+        return true;
       }
+    } catch (e) {
+      console.warn('[PLACES] Falló actualización en backend, usando local.', e);
     }
 
     // Local fallback
@@ -154,31 +167,40 @@ export function PlacesProvider({ children }) {
       setStoredPlaces(updated);
       return updated;
     });
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent(GEODATA_UPDATED_EVENT));
+    }
     return true;
   }, [token]);
 
   const deletePlace = useCallback(async (id) => {
-    if (token) {
-      try {
-        const res = await fetch(`${API_BASE_URL}/places/${id}`, {
-          method: 'DELETE',
-          headers: { Authorization: `Bearer ${token}` }
-        });
-        if (res.ok) {
-          setPlaces(prev => prev.filter(p => p.id !== id));
-          return true;
+    // 1. Guardar permanentemente en lista local de eliminados para que NUNCA reaparezca al recargar
+    addDeletedPlaceId(id);
+
+    // 2. Intentar eliminar en la base de datos backend SQLite
+    try {
+      await fetch(`${API_BASE_URL}/places/${id}`, {
+        method: 'DELETE',
+        headers: {
+          ...(token ? { Authorization: `Bearer ${token}` } : {})
         }
-      } catch (e) {
-        console.warn('[PLACES] Falló eliminación en backend, usando local.', e);
-      }
+      });
+    } catch (e) {
+      console.warn('[PLACES] Falló eliminación en backend, pero fue registrado localmente como eliminado:', e);
     }
 
+    // 3. Remover del estado React en memoria
     setPlaces(prev => prev.filter(p => p.id !== id));
     setAdminPlaces(prev => {
       const updated = prev.filter(p => p.id !== id);
       setStoredPlaces(updated);
       return updated;
     });
+
+    // 4. Disparar evento para actualizar contadores y capas de mapa en tiempo real
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent(GEODATA_UPDATED_EVENT));
+    }
     return true;
   }, [token]);
 

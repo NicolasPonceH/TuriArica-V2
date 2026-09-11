@@ -59,8 +59,16 @@
     background-color: var(--color-surface);
     color: var(--color-on-surface);
     scroll-behavior: smooth;
-    transition: background-color 0.4s ease, color 0.4s ease;
-    letter-spacing: -0.01em;
+    transition: background-color 0.3s cubic-bezier(0.16, 1, 0.3, 1), color 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    letter-spacing: -0.015em;
+  }
+  
+  *, ::before, ::after {
+    font-family: inherit;
+  }
+  
+  body, button, input, select, textarea, h1, h2, h3, h4, h5, h6, p, a, span, label, div {
+    font-family: var(--font-sans);
   }
   
   body {
@@ -104,13 +112,13 @@
   body.high-contrast .glass-panel,
   body.high-contrast .glass-card,
   body.high-contrast .glass-modal {
-    background: rgba(22, 34, 56, 0.85) !important;
-    border-color: rgba(255, 255, 255, 0.12) !important;
+    background: rgba(22, 34, 56, 0.88) !important;
+    border-color: rgba(255, 255, 255, 0.15) !important;
     box-shadow: 0 10px 30px -5px rgba(0, 0, 0, 0.5) !important;
   }
 }
 
-/* Glassmorphism System */
+/* Glassmorphism System Elevado (con reflejo superior especular y profundidad tangible) */
 @layer utilities {
   /* Panel Glassmorphism (para barras de navegación, contenedores principales y tarjetas flotantes) */
   .glass-panel {
@@ -118,16 +126,16 @@
     backdrop-filter: blur(16px) saturate(180%);
     -webkit-backdrop-filter: blur(16px) saturate(180%);
     border: 1px solid rgba(255, 255, 255, 0.75);
-    box-shadow: 0 10px 25px -5px rgba(11, 28, 48, 0.05), 0 0 0 1px rgba(226, 232, 240, 0.4);
+    box-shadow: inset 0 1px 1px 0 rgba(255, 255, 255, 0.7), 0 10px 25px -5px rgba(11, 28, 48, 0.05), 0 0 0 1px rgba(226, 232, 240, 0.35);
   }
   
   /* Card Glassmorphism (para tarjetas de lugares, widgets y módulos) */
   .glass-card {
     background: rgba(255, 255, 255, 0.88);
-    backdrop-filter: blur(12px) saturate(160%);
-    -webkit-backdrop-filter: blur(12px) saturate(160%);
-    border: 1px solid rgba(255, 255, 255, 0.9);
-    box-shadow: 0 4px 20px -2px rgba(11, 28, 48, 0.04), 0 1px 3px rgba(11, 28, 48, 0.02);
+    backdrop-filter: blur(14px) saturate(165%);
+    -webkit-backdrop-filter: blur(14px) saturate(165%);
+    border: 1px solid rgba(255, 255, 255, 0.85);
+    box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.8), 0 4px 20px -2px rgba(11, 28, 48, 0.04), 0 1px 3px rgba(11, 28, 48, 0.02);
   }
 
   /* Modal Glassmorphism (para modales, asistente y planificador) */
@@ -136,15 +144,16 @@
     backdrop-filter: blur(20px) saturate(190%);
     -webkit-backdrop-filter: blur(20px) saturate(190%);
     border: 1px solid rgba(255, 255, 255, 0.95);
-    box-shadow: 0 25px 50px -12px rgba(11, 28, 48, 0.22);
+    box-shadow: inset 0 1px 1px 0 rgba(255, 255, 255, 0.9), 0 25px 50px -12px rgba(11, 28, 48, 0.22);
   }
 
   /* Pill Glassmorphism (para chips interactivos, filtros y badges) */
   .glass-pill {
-    background: rgba(255, 255, 255, 0.75);
+    background: rgba(255, 255, 255, 0.78);
     backdrop-filter: blur(8px);
     -webkit-backdrop-filter: blur(8px);
-    border: 1px solid rgba(255, 255, 255, 0.6);
+    border: 1px solid rgba(255, 255, 255, 0.7);
+    box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.6), 0 1px 2px 0 rgba(11, 28, 48, 0.03);
   }
 
   /* Dark Glassmorphism */
@@ -153,10 +162,82 @@
     backdrop-filter: blur(16px) saturate(160%);
     -webkit-backdrop-filter: blur(16px) saturate(160%);
     border: 1px solid rgba(255, 255, 255, 0.12);
-    box-shadow: 0 10px 30px -5px rgba(0, 0, 0, 0.35);
+    box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.15), 0 10px 30px -5px rgba(0, 0, 0, 0.35);
+  }
+
+  /* Micro-interacciones táctiles (Emil Kowalski Design Engineering) */
+  .btn-tactile {
+    transition: transform 140ms cubic-bezier(0.16, 1, 0.3, 1), box-shadow 140ms ease-out, background-color 140ms ease-out, opacity 140ms ease-out;
+  }
+  .btn-tactile:active {
+    transform: scale(0.97);
+  }
+  @media (hover: hover) and (pointer: fine) {
+    .btn-tactile:hover {
+      transform: translateY(-1px);
+    }
+    .btn-tactile:active {
+      transform: scale(0.97) translateY(0);
+    }
+  }
+
+  /* Tarjetas interactivas con aceleración por GPU */
+  .card-tactile {
+    transition: transform 220ms cubic-bezier(0.16, 1, 0.3, 1), box-shadow 220ms cubic-bezier(0.16, 1, 0.3, 1), border-color 220ms ease-out;
+    will-change: transform;
+  }
+  @media (hover: hover) and (pointer: fine) {
+    .card-tactile:hover {
+      transform: translateY(-4px);
+    }
   }
   
   .text-gradient {
     @apply bg-clip-text text-transparent bg-gradient-to-r from-accent-500 to-brand-500;
+  }
+}
+
+/* Modo Nocturno Dinámico (Arica de Noche) */
+.theme-night .text-slate-900 {
+  color: #f8fafc !important;
+}
+.theme-night .text-slate-800 {
+  color: #f1f5f9 !important;
+}
+.theme-night .text-slate-700 {
+  color: #e2e8f0 !important;
+}
+.theme-night .text-slate-600 {
+  color: #cbd5e1 !important;
+}
+.theme-night .text-slate-500 {
+  color: #94a3b8 !important;
+}
+.theme-night .border-slate-100,
+.theme-night .border-gray-100 {
+  border-color: rgba(255, 255, 255, 0.1) !important;
+}
+.theme-night .bg-white {
+  background-color: rgba(15, 23, 42, 0.85) !important;
+}
+.theme-night .glass-card,
+.theme-night .glass-panel {
+  background: rgba(15, 23, 42, 0.78) !important;
+  border-color: rgba(255, 255, 255, 0.16) !important;
+  box-shadow: inset 0 1px 1px 0 rgba(255, 255, 255, 0.25), 0 10px 30px -5px rgba(0, 0, 0, 0.5) !important;
+}
+.theme-night .glass-pill {
+  background: rgba(30, 41, 59, 0.75) !important;
+  border-color: rgba(255, 255, 255, 0.2) !important;
+  color: #f8fafc !important;
+}
+
+/* Accesibilidad y Reducción de Movimiento */
+@media (prefers-reduced-motion: reduce) {
+  *, ::before, ::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
   }
 }

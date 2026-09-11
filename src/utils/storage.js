@@ -8,6 +8,7 @@ const STORAGE_KEYS = {
   TRANSLATION_CACHE: 'turiarica_translations',
   FAVORITES: 'turiarica_favorites',
   DISMISSED_POPUP: 'turiarica_dismissed_popup',
+  DELETED_PLACES: 'turiarica_deleted_places',
 };
 
 export function getStoredData(key) {
@@ -44,6 +45,25 @@ export function getStoredPlaces() {
 
 export function setStoredPlaces(places) {
   return setStoredData(STORAGE_KEYS.PLACES, places);
+}
+
+// Deleted places tracking to prevent re-appearance on refresh
+export function getDeletedPlaceIds() {
+  return getStoredData(STORAGE_KEYS.DELETED_PLACES) || [];
+}
+
+export function addDeletedPlaceId(id) {
+  const ids = getDeletedPlaceIds();
+  if (!ids.includes(id)) {
+    const updated = [...ids, id];
+    setStoredData(STORAGE_KEYS.DELETED_PLACES, updated);
+    return updated;
+  }
+  return ids;
+}
+
+export function clearDeletedPlaceIds() {
+  return removeStoredData(STORAGE_KEYS.DELETED_PLACES);
 }
 
 // Language

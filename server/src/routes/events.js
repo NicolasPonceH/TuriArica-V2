@@ -29,7 +29,10 @@ router.get('/', requireAuth, async (req, res) => {
 // 3. Crear nuevo evento o anuncio (Protegido)
 router.post('/', requireAuth, async (req, res) => {
   try {
-    const { title, message, type, startDate, endDate, isActive, isPopup, bannerUrl, actionUrl, priority } = req.body;
+    const {
+      title, message, type, startDate, endDate, isActive, isPopup,
+      bannerUrl, actionUrl, priority, placeId, placeName, discountBadge
+    } = req.body;
 
     if (!title || !message) {
       return res.status(400).json({ error: 'Título y mensaje son obligatorios.' });
@@ -45,7 +48,10 @@ router.post('/', requireAuth, async (req, res) => {
       isPopup,
       bannerUrl,
       actionUrl,
-      priority: Number(priority) || 1
+      priority: Number(priority) || 1,
+      placeId: placeId || null,
+      placeName: placeName || null,
+      discountBadge: discountBadge || null
     });
 
     res.status(201).json({

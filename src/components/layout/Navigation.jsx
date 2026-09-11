@@ -17,26 +17,41 @@ export default function Navigation() {
 
   const searchResults = searchQuery.trim() ? searchPlaces(searchQuery).slice(0, 5) : [];
 
-  const currentLang = SUPPORTED_LANGUAGES.find(l => l.code === language);
-
   return (
     <motion.nav
-      initial={{ y: -100 }}
-      animate={{ y: 0 }}
-      className="fixed top-0 left-0 right-0 z-50 px-4 sm:px-6 py-3 sm:py-4"
+      initial={{ y: -80, opacity: 0 }}
+      animate={{ y: 0, opacity: 1 }}
+      transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
+      className="fixed top-0 left-0 right-0 z-50 px-4 sm:px-6 py-3 sm:py-4 pointer-events-none"
     >
-      <div className="max-w-6xl mx-auto glass-panel rounded-2xl px-4 sm:px-6 py-3 flex justify-between items-center relative">
+      <div className="max-w-6xl mx-auto glass-panel rounded-2xl px-4 sm:px-6 py-3 flex justify-between items-center relative pointer-events-auto">
         {/* Logo */}
-        <Link to="/" className="flex items-center gap-2 font-bold text-xl text-gray-900 shrink-0">
-          <Mountain className="text-accent-500" />
-          <span className="hidden sm:inline">TuriArica</span>
+        <Link to="/" className="flex items-center gap-2.5 font-extrabold text-xl text-gray-900 shrink-0 group">
+          <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-accent-500 to-brand-500 flex items-center justify-center text-white shadow-xs group-hover:scale-105 transition-transform">
+            <Mountain size={18} />
+          </div>
+          <span className="hidden sm:inline tracking-tight font-black bg-gradient-to-r from-gray-900 to-gray-700 bg-clip-text text-transparent">
+            TuriArica
+          </span>
         </Link>
 
         {/* Desktop Nav */}
-        <ul className="hidden md:flex items-center gap-8 text-sm font-medium text-gray-600">
-          <li><a href="/#inicio" className="hover:text-brand-600 transition-colors">{t('nav.home')}</a></li>
-          <li><a href="/#lugares" className="hover:text-brand-600 transition-colors">{t('nav.places')}</a></li>
-          <li><a href="/#mapa" className="hover:text-brand-600 transition-colors">{t('nav.map')}</a></li>
+        <ul className="hidden md:flex items-center gap-8 text-sm font-semibold text-gray-600">
+          <li>
+            <a href="/#inicio" className="hover:text-brand-600 transition-colors py-1 relative">
+              {t('nav.home')}
+            </a>
+          </li>
+          <li>
+            <a href="/#lugares" className="hover:text-brand-600 transition-colors py-1 relative">
+              {t('nav.places')}
+            </a>
+          </li>
+          <li>
+            <a href="/#mapa" className="hover:text-brand-600 transition-colors py-1 relative">
+              {t('nav.map')}
+            </a>
+          </li>
         </ul>
 
         {/* Right actions */}
@@ -47,42 +62,44 @@ export default function Navigation() {
           {/* Search toggle */}
           <button
             onClick={() => { setSearchOpen(!searchOpen); setMobileOpen(false); setLangOpen(false); }}
-            className="p-2 rounded-full bg-brand-50 hover:bg-brand-100 text-brand-600 transition-colors"
+            className="p-2.5 rounded-xl bg-brand-50/80 hover:bg-brand-100 text-brand-600 btn-tactile cursor-pointer"
             aria-label="Buscar"
           >
-            <Search size={20} />
+            <Search size={18} />
           </button>
 
           {/* Language selector */}
           <div className="relative">
             <button
               onClick={() => { setLangOpen(!langOpen); setSearchOpen(false); setMobileOpen(false); }}
-              className="p-2 rounded-full bg-brand-50 hover:bg-brand-100 text-brand-600 transition-colors flex items-center gap-1"
+              className="p-2.5 rounded-xl bg-brand-50/80 hover:bg-brand-100 text-brand-600 btn-tactile flex items-center gap-1.5 cursor-pointer"
               aria-label="Idioma"
             >
-              <Globe size={20} />
-              <span className="text-xs font-bold hidden sm:inline">{language.toUpperCase()}</span>
+              <Globe size={18} />
+              <span className="text-xs font-black hidden sm:inline">{language.toUpperCase()}</span>
             </button>
 
             <AnimatePresence>
               {langOpen && (
                 <motion.div
-                  initial={{ opacity: 0, y: -10, scale: 0.95 }}
+                  style={{ transformOrigin: 'top right' }}
+                  initial={{ opacity: 0, y: -6, scale: 0.96 }}
                   animate={{ opacity: 1, y: 0, scale: 1 }}
-                  exit={{ opacity: 0, y: -10, scale: 0.95 }}
-                  className="absolute right-0 top-12 bg-white rounded-2xl shadow-2xl border border-gray-200 p-2 min-w-[180px] z-50"
+                  exit={{ opacity: 0, y: -6, scale: 0.96 }}
+                  transition={{ duration: 0.16, ease: [0.16, 1, 0.3, 1] }}
+                  className="absolute right-0 top-12 glass-modal rounded-2xl p-2 min-w-[190px] z-50 shadow-2xl"
                 >
                   {SUPPORTED_LANGUAGES.map(lang => (
                     <button
                       key={lang.code}
                       onClick={() => { setLanguage(lang.code); setLangOpen(false); }}
-                      className={`w-full text-left px-4 py-2.5 rounded-xl text-sm font-medium flex items-center gap-3 transition-colors ${
+                      className={`w-full text-left px-3.5 py-2.5 rounded-xl text-xs font-bold flex items-center gap-3 transition-colors cursor-pointer ${
                         language === lang.code
-                          ? 'bg-brand-50 text-brand-600'
-                          : 'text-gray-700 hover:bg-gray-50'
+                          ? 'bg-brand-50 text-brand-600 font-extrabold'
+                          : 'text-gray-700 hover:bg-gray-100/80'
                       }`}
                     >
-                      <span className="text-lg">{lang.flag}</span>
+                      <span className="text-base">{lang.flag}</span>
                       <span>{lang.label}</span>
                     </button>
                   ))}
@@ -94,10 +111,10 @@ export default function Navigation() {
           {/* Mobile menu toggle */}
           <button
             onClick={() => { setMobileOpen(!mobileOpen); setSearchOpen(false); setLangOpen(false); }}
-            className="p-2 rounded-full bg-brand-50 hover:bg-brand-100 text-brand-600 transition-colors md:hidden"
+            className="p-2.5 rounded-xl bg-brand-50/80 hover:bg-brand-100 text-brand-600 btn-tactile md:hidden cursor-pointer"
             aria-label="Menú"
           >
-            {mobileOpen ? <X size={20} /> : <Menu size={20} />}
+            {mobileOpen ? <X size={18} /> : <Menu size={18} />}
           </button>
         </div>
       </div>
@@ -106,12 +123,14 @@ export default function Navigation() {
       <AnimatePresence>
         {searchOpen && (
           <motion.div
-            initial={{ opacity: 0, y: -10 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -10 }}
-            className="max-w-6xl mx-auto mt-2"
+            style={{ transformOrigin: 'top center' }}
+            initial={{ opacity: 0, y: -8, scale: 0.98 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: -8, scale: 0.98 }}
+            transition={{ duration: 0.18, ease: [0.16, 1, 0.3, 1] }}
+            className="max-w-6xl mx-auto mt-2 pointer-events-auto"
           >
-            <div className="glass-panel rounded-2xl px-4 py-3 shadow-2xl">
+            <div className="glass-modal rounded-2xl px-5 py-3.5 shadow-2xl">
               <div className="flex items-center gap-3">
                 <Search size={18} className="text-gray-400 shrink-0" />
                 <input
@@ -119,12 +138,12 @@ export default function Navigation() {
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   placeholder={t('nav.search')}
-                  className="flex-1 bg-transparent outline-none text-gray-800 placeholder-gray-400"
+                  className="flex-1 bg-transparent outline-none text-gray-800 placeholder-gray-400 text-sm font-medium"
                   autoFocus
                 />
                 {searchQuery && (
-                  <button onClick={() => setSearchQuery('')} className="text-gray-400 hover:text-gray-600">
-                    <X size={18} />
+                  <button onClick={() => setSearchQuery('')} className="text-gray-400 hover:text-gray-600 p-1">
+                    <X size={16} />
                   </button>
                 )}
               </div>
@@ -136,16 +155,16 @@ export default function Navigation() {
                       key={place.id}
                       href="/#mapa"
                       onClick={() => { setSearchOpen(false); setSearchQuery(''); }}
-                      className="flex items-center gap-3 p-3 rounded-xl hover:bg-gray-50 transition-colors"
+                      className="flex items-center gap-3 p-2.5 rounded-xl hover:bg-gray-50/90 transition-colors"
                     >
                       <div
-                        className="w-8 h-8 rounded-full flex items-center justify-center shrink-0"
-                        style={{ backgroundColor: place.color + '30' }}
+                        className="w-8 h-8 rounded-xl flex items-center justify-center shrink-0 shadow-xs"
+                        style={{ backgroundColor: place.color + '25' }}
                       >
-                        <MapPin size={14} style={{ color: place.color }} />
+                        <MapPin size={15} style={{ color: place.color }} />
                       </div>
                       <div className="flex-1 min-w-0">
-                        <p className="font-semibold text-sm text-gray-900 truncate">{place.name}</p>
+                        <p className="font-bold text-sm text-gray-900 truncate">{place.name}</p>
                         <p className="text-xs text-gray-500">{place.category}</p>
                       </div>
                     </a>
@@ -161,13 +180,15 @@ export default function Navigation() {
       <AnimatePresence>
         {mobileOpen && (
           <motion.div
-            initial={{ opacity: 0, y: -10 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -10 }}
-            className="max-w-6xl mx-auto mt-2 md:hidden"
+            style={{ transformOrigin: 'top center' }}
+            initial={{ opacity: 0, y: -8, scale: 0.98 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: -8, scale: 0.98 }}
+            transition={{ duration: 0.18, ease: [0.16, 1, 0.3, 1] }}
+            className="max-w-6xl mx-auto mt-2 md:hidden pointer-events-auto"
           >
-            <div className="glass-panel rounded-2xl px-6 py-4 shadow-2xl">
-              <ul className="space-y-1">
+            <div className="glass-modal rounded-2xl px-6 py-4 shadow-2xl">
+              <ul className="space-y-1.5">
                 {[
                   { href: "/#inicio", label: t('nav.home') },
                   { href: "/#lugares", label: t('nav.places') },
@@ -177,7 +198,7 @@ export default function Navigation() {
                     <a
                       href={item.href}
                       onClick={() => setMobileOpen(false)}
-                      className="block py-3 px-4 rounded-xl text-gray-700 hover:bg-brand-50 hover:text-brand-600 font-medium transition-colors"
+                      className="block py-3 px-4 rounded-xl text-gray-800 hover:bg-brand-50 hover:text-brand-600 font-bold text-sm transition-colors"
                     >
                       {item.label}
                     </a>
