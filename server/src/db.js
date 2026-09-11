@@ -46,11 +46,55 @@ export function getActiveEngine() {
   return activeEngine;
 }
 
+// Helpers de migración de esquema segura (Agrega columnas si no existen sin perder datos)
+async function ensureMySQLColumns(pool) {
+  try {
+    const [cols] = await pool.query(`SHOW COLUMNS FROM places`);
+    const colNames = cols.map(c => c.Field);
+
+    if (!colNames.includes('accessibility_json')) {
+      await pool.query(`ALTER TABLE places ADD COLUMN accessibility_json TEXT AFTER ai_tags_json`);
+    }
+    if (!colNames.includes('tips')) {
+      await pool.query(`ALTER TABLE places ADD COLUMN tips TEXT AFTER accessibility_json`);
+    }
+    if (!colNames.includes('entry_fee')) {
+      await pool.query(`ALTER TABLE places ADD COLUMN entry_fee VARCHAR(255) AFTER tips`);
+    }
+    if (!colNames.includes('best_time')) {
+      await pool.query(`ALTER TABLE places ADD COLUMN best_time VARCHAR(255) AFTER entry_fee`);
+    }
+  } catch (err) {
+    console.warn('[DB MIGRATION MYSQL]', err.message);
+  }
+}
+
+function ensureSQLiteColumns(db) {
+  try {
+    const tableInfo = db.prepare(`PRAGMA table_info(places)`).all();
+    const colNames = tableInfo.map(c => c.name);
+    if (!colNames.includes('accessibility_json')) {
+      db.exec(`ALTER TABLE places ADD COLUMN accessibility_json TEXT;`);
+    }
+    if (!colNames.includes('tips')) {
+      db.exec(`ALTER TABLE places ADD COLUMN tips TEXT;`);
+    }
+    if (!colNames.includes('entry_fee')) {
+      db.exec(`ALTER TABLE places ADD COLUMN entry_fee TEXT;`);
+    }
+    if (!colNames.includes('best_time')) {
+      db.exec(`ALTER TABLE places ADD COLUMN best_time TEXT;`);
+    }
+  } catch (err) {
+    console.warn('[DB MIGRATION SQLITE]', err.message);
+  }
+}
+
 // 1. Inicialización del Motor de Base de Datos
 export async function initDatabase() {
   if (DB_TYPE === 'mysql') {
     try {
-      // Conectar a MySQL sin BD para asegurar que la base de datos 'turiarica' exista en phpMyAdmin
+      // Conectar a MySQL sin BD para asegurar que 'turiarica' exista en phpMyAdmin
       const rootConn = await mysql.createConnection({
         host: MYSQL_CONFIG.host,
         port: MYSQL_CONFIG.port,
@@ -60,7 +104,7 @@ export async function initDatabase() {
       await rootConn.query(`CREATE DATABASE IF NOT EXISTS \`${MYSQL_CONFIG.database}\` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;`);
       await rootConn.end();
 
-      // Crear Pool de conexiones hacia la base de datos 'turiarica'
+      // Crear Pool de conexiones
       mysqlPool = mysql.createPool({
         host: MYSQL_CONFIG.host,
         port: MYSQL_CONFIG.port,
@@ -72,7 +116,7 @@ export async function initDatabase() {
         queueLimit: 0
       });
 
-      // Crear Tablas en MySQL compatibles con phpMyAdmin
+      // Crear Tablas en MySQL
       await mysqlPool.query(`
         CREATE TABLE IF NOT EXISTS admins (
           id INT AUTO_INCREMENT PRIMARY KEY,
@@ -100,12 +144,16 @@ export async function initDatabase() {
           phone VARCHAR(100),
           website VARCHAR(255),
           price_range VARCHAR(50),
+          entry_fee VARCHAR(255),
+          best_time VARCHAR(255),
+          tips TEXT,
           is_24h TINYINT(1) DEFAULT 0,
           audio_file VARCHAR(255),
           transport_json TEXT,
           photos_json TEXT,
           videos_json TEXT,
           ai_tags_json TEXT,
+          accessibility_json TEXT,
           is_default TINYINT(1) DEFAULT 0,
           created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
           updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
@@ -128,6 +176,9 @@ export async function initDatabase() {
           created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
       `);
+
+      // Asegurar columnas añadidas
+      await ensureMySQLColumns(mysqlPool);
 
       activeEngine = 'mysql';
       console.log(`[DB] 🐬 Conectado exitosamente a MySQL (XAMPP phpMyAdmin: bd '${MYSQL_CONFIG.database}')`);
@@ -165,12 +216,16 @@ export async function initDatabase() {
         phone TEXT,
         website TEXT,
         price_range TEXT,
+        entry_fee TEXT,
+        best_time TEXT,
+        tips TEXT,
         is_24h INTEGER DEFAULT 0,
         audio_file TEXT,
         transport_json TEXT,
         photos_json TEXT,
         videos_json TEXT,
         ai_tags_json TEXT,
+        accessibility_json TEXT,
         is_default INTEGER DEFAULT 0,
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
         updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
@@ -190,6 +245,7 @@ export async function initDatabase() {
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP
       );
     `);
+    ensureSQLiteColumns(sqliteDb);
     activeEngine = 'sqlite';
     console.log('[DB] 🗄️ Base de datos SQLite activa.');
   }
@@ -198,6 +254,18 @@ export async function initDatabase() {
 // 2. Helpers de Formato
 function formatPlace(r) {
   if (!r) return null;
+
+  let parsedAccessibility = { wheelchair: false, ramps: false, adaptedBathrooms: false, notes: '' };
+  try {
+    if (typeof r.accessibility_json === 'string' && r.accessibility_json.trim()) {
+      parsedAccessibility = JSON.parse(r.accessibility_json);
+    } else if (typeof r.accessibility_json === 'object' && r.accessibility_json !== null) {
+      parsedAccessibility = r.accessibility_json;
+    }
+  } catch (e) {
+    // fallback
+  }
+
   return {
     id: r.id,
     name: r.name,
@@ -214,6 +282,10 @@ function formatPlace(r) {
     phone: r.phone,
     website: r.website,
     priceRange: r.price_range,
+    entryFee: r.entry_fee || '',
+    bestTime: r.best_time || '',
+    tips: r.tips || '',
+    accessibility: parsedAccessibility,
     is24h: Boolean(r.is_24h),
     audioFile: r.audio_file,
     transport: typeof r.transport_json === 'string' ? JSON.parse(r.transport_json || '{}') : (r.transport_json || {}),
@@ -255,103 +327,228 @@ function formatAdmin(a) {
   };
 }
 
-// 8 Lugares Iniciales de Arica
-const initialPlaces = [
+// 13 Lugares Oficiales y Emblemáticos de Arica y Parinacota
+export const initialPlaces = [
   {
     name: "Playa El Laucho", category: "Playa", type: "turismo", icon: "Umbrella", color: "#0EA5E9",
-    shortDesc: "La playa más popular y accesible de Arica.",
-    fullDesc: "Playa El Laucho es el balneario por excelencia de Arica. Sus aguas de color turquesa son inusualmente tranquilas y de temperatura agradable, lo que la convierte en una piscina natural ideal para el baño seguro de niños y adultos. Cuenta con una excelente infraestructura inclusiva, incluyendo rampas que llegan casi hasta la orilla del mar, baños adaptados, duchas y arriendo de sombrillas. En su entorno encontrarás una vibrante oferta gastronómica para disfrutar de un hermoso atardecer frente al Pacífico.",
+    shortDesc: "La playa más popular, cálida y 100% accesible de Arica.",
+    fullDesc: "Playa El Laucho es el balneario por excelencia de Arica. Sus aguas turquesas son excepcionalmente calmas y de temperatura agradable, asemejando una piscina natural ideal para el baño seguro de niños y adultos. Cuenta con una destacada infraestructura inclusiva con rampas de madera hasta la orilla del mar, baños adaptados, duchas, arriendo de sombrillas y locales gastronómicos para contemplar el atardecer frente al Pacífico.",
     lat: -18.4879, lng: -70.3267, hours: "Abierta todo el año · 24 horas",
     directions: "Desde el centro, tomar Av. Comandante San Martín al sur por 2 km. Micros 12, 14, 10, 8 (letrero 'Centro/Mall' en ida).",
-    phone: "+56 58 220 6000", website: "https://www.arica.cl", priceRange: "", is24h: 1, audioFile: "audios/laucho_audio.mp3",
+    phone: "+56 58 220 6000", website: "https://www.arica.cl", priceRange: "Gratis",
+    entryFee: "Acceso libre y público gratuito",
+    bestTime: "11:00 a 19:30 para sol pleno y baño tranquilo",
+    tips: "El mejor balneario para nadar con niños porque casi no tiene olas. Hay arriendo de reposeras y sombrillas.",
+    accessibility: { wheelchair: true, ramps: true, adaptedBathrooms: true, notes: "Playa inclusiva con pasarela de madera hasta el mar y personal de apoyo en verano." },
+    is24h: 1, audioFile: "audios/laucho_audio.mp3",
     transport: { lineas: ["12", "14", "10", "8"], direccion: "sur", letrero: "Centro / Mall", parada: "Av. Comandante San Martín" },
     photos: ["https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=800&auto=format&fit=crop"],
     videos: [],
-    aiTags: ["playa", "turismo", "inclusivo", "familiar", "mar", "laucho"]
+    aiTags: ["playa", "turismo", "inclusivo", "familiar", "mar", "laucho", "silla de ruedas"]
   },
   {
     name: "Museo de Sitio Colón 10", category: "Museo", type: "turismo", icon: "Landmark", color: "#8B5CF6",
-    shortDesc: "Hogar de las momias Chinchorro, las más antiguas del mundo.",
-    fullDesc: "Este asombroso museo está construido literalmente sobre un cementerio prehispánico. El Museo de Sitio Colón 10 resguarda in situ a las momias de la Cultura Chinchorro, reconocidas por la UNESCO como Patrimonio de la Humanidad. Estas momias tienen más de 7.000 años de antigüedad, superando en milenios a las momias egipcias. A través de un suelo de cristal y pasarelas totalmente accesibles, los visitantes pueden observar los cuerpos y ofrendas exactamente como fueron descubiertos.",
+    shortDesc: "Hogar in situ de las momias Chinchorro, las más antiguas de la humanidad.",
+    fullDesc: "Construido literalmente sobre un cementerio prehispánico descubierto en el corazón de la ciudad, el Museo de Sitio Colón 10 resguarda in situ a las momias de la Cultura Chinchorro, reconocidas por la UNESCO como Patrimonio de la Humanidad. Tienen más de 7.000 años de antigüedad, superando en milenios a las egipcias. A través de un suelo de cristal y pasarelas accesibles, los visitantes observan los cuerpos y ofrendas tal como fueron depositados.",
     lat: -18.4806, lng: -70.3216, hours: "Martes a Domingo · 09:00 - 18:00",
     directions: "Calle Colón 10, a 3 cuadras de la Plaza Colón. Micros 1,2,3,5,7,10,11,16,113 (letrero 'Centro'). Bajas en calle Colón y caminas 3 cuadras.",
-    phone: "+56 58 220 5410", website: "https://uta.cl/museos", priceRange: "$", is24h: 0, audioFile: "audios/Museo_audio.mp3",
+    phone: "+56 58 220 5410", website: "https://uta.cl/museos", priceRange: "$",
+    entryFee: "Adultos: $2.000 CLP · Escolares y 3ra edad: $1.000 CLP",
+    bestTime: "Martes a domingo por la mañana (10:00 - 13:00)",
+    tips: "El recorrido toma unos 40 minutos con audioguía incluida; está prohibido tomar fotos con flash para preservar los restos orgánicos.",
+    accessibility: { wheelchair: true, ramps: true, adaptedBathrooms: true, notes: "Pasarelas elevadas y suelo de cristal totalmente nivelados para sillas de ruedas." },
+    is24h: 0, audioFile: "audios/Museo_audio.mp3",
     transport: { lineas: ["1", "2", "3", "5", "7", "10", "11", "16", "113"], direccion: "centro", letrero: "Centro", parada: "Calle Colón" },
     photos: ["https://images.unsplash.com/photo-1544620347-c4fd4a3d5957?w=800&auto=format&fit=crop"],
     videos: [],
-    aiTags: ["museo", "cultura", "patrimonio", "chinchorro", "momias", "historia"]
+    aiTags: ["museo", "cultura", "patrimonio", "chinchorro", "momias", "historia", "unesco"]
   },
   {
     name: "Iglesia San Marcos", category: "Histórico", type: "turismo", icon: "Church", color: "#F59E0B",
-    shortDesc: "Diseñada por Gustave Eiffel, ícono de Arica.",
-    fullDesc: "Declarada Monumento Nacional, la Iglesia San Marcos es una joya arquitectónica diseñada en 1876 por los talleres del famoso ingeniero francés Gustave Eiffel. Lo más sorprendente es que su estructura es completamente de fierro fundido, traída en barco desde Francia y ensamblada en Arica para resistir los terremotos de la zona. Su estilo gótico, sus coloridos vitrales y su asimétrica torre la convierten en una parada obligatoria.",
-    lat: -18.4789, lng: -70.3207, hours: "Lunes a Sábado 08-20h · Domingo 09-13h",
-    directions: "Plaza Colón, centro histórico. Cualquier micro con letrero 'Centro' te deja en la plaza.",
-    phone: "", website: "", priceRange: "", is24h: 0, audioFile: "audios/Catedral_audio.mp3",
+    shortDesc: "Joya arquitectónica de fierro fundido diseñada por Gustave Eiffel en 1876.",
+    fullDesc: "Declarada Monumento Nacional, la Iglesia San Marcos es un tesoro arquitectónico diseñado en París por los talleres del legendario ingeniero francés Gustave Eiffel. Su estructura completa de hierro fundido fue traída en barco y ensamblada en Arica para resistir los sismos de la región. Su estilo neogótico, coloridos vitrales franceses y su campanario la convierten en la postal patrimonial por excelencia de la Plaza Colón.",
+    lat: -18.4789, lng: -70.3207, hours: "Lunes a Sábado 08:00 - 20:00 · Domingo 09:00 - 13:00",
+    directions: "Plaza Colón, centro histórico de Arica. Cualquier micro con letrero 'Centro' te deja en la plaza.",
+    phone: "+56 58 223 1860", website: "", priceRange: "Gratis",
+    entryFee: "Entrada liberada y gratuita",
+    bestTime: "Mañanas despejadas para apreciar la luz a través de los vitrales góticos",
+    tips: "Tómate una fotografía frente a su fachada y observa los remaches de fierro forjado originales de la casa Eiffel.",
+    accessibility: { wheelchair: true, ramps: true, adaptedBathrooms: false, notes: "Rampa en acceso lateral para ingresar a la nave central." },
+    is24h: 0, audioFile: "audios/Catedral_audio.mp3",
     transport: { lineas: ["1", "2", "3", "5", "7", "10", "11", "16", "113"], direccion: "centro", letrero: "Centro", parada: "Plaza Colón" },
     photos: ["https://images.unsplash.com/photo-1548625361-195fe210b484?w=800&auto=format&fit=crop"],
     videos: [],
-    aiTags: ["eiffel", "catedral", "iglesia", "san marcos", "monumento", "centro"]
+    aiTags: ["eiffel", "catedral", "iglesia", "san marcos", "monumento", "centro", "patrimonio"]
   },
   {
     name: "El Morro de Arica", category: "Histórico", type: "turismo", icon: "Mountain", color: "#EF4444",
-    shortDesc: "Cerro con museo histórico y vistas panorámicas.",
-    fullDesc: "El Morro de Arica es el símbolo indiscutido de la ciudad. Este imponente peñón costero de 139 metros de altura fue el escenario de una de las batallas más decisivas de la Guerra del Pacífico en 1880. Hoy en día, su cima funciona como un gran balcón natural que ofrece las mejores vistas panorámicas de la ciudad, el puerto y el Océano Pacífico. En la cumbre podrás visitar el Museo Histórico y de Armas.",
-    lat: -18.4803, lng: -70.3236, hours: "Martes a Domingo · 08:00 - 18:00",
-    directions: "Acceso por Av. Colón o calle Rafael Sotomayor. Estacionamiento gratuito. En micro, toma 12,14,10,8 con letrero 'Centro/Mall' y baja en los pies del Morro.",
-    phone: "+56 58 225 1550", website: "", priceRange: "$", is24h: 0, audioFile: "audios/Morro_audio.mp3",
+    shortDesc: "Cerro icónico de 139 m con museo de armas y panorámica 360° de la ciudad y el mar.",
+    fullDesc: "El Morro de Arica es el emblema geográfico e histórico indiscutible de la ciudad. Este imponente acantilado costero de 139 metros fue el teatro de la célebre toma del Morro en 1880 durante la Guerra del Pacífico. Su cima alberga la gran explanada con el monumento al Cristo de la Paz, trincheras históricas y el Museo Histórico y de Armas, brindando una vista 360 grados inigualable del puerto, las playas y el valle.",
+    lat: -18.4803, lng: -70.3236, hours: "Martes a Domingo · 08:00 - 18:00 (Explanada 24h)",
+    directions: "Acceso peatonal por calle Colón o vehicular por calle Sotomayor. Estacionamiento gratuito. En micro: 12, 14, 10, 8 hasta los pies del Morro.",
+    phone: "+56 58 225 1550", website: "", priceRange: "$",
+    entryFee: "Explanada y mirador: Gratis · Museo Histórico de Armas: $1.000 CLP",
+    bestTime: "18:00 a 19:45 para presenciar la puesta de sol sobre el Océano Pacífico",
+    tips: "Llevar gorro o sombrero y protector solar; suele correr viento fresco en la cumbre. Ideal para fotografías panorámicas.",
+    accessibility: { wheelchair: true, ramps: true, adaptedBathrooms: true, notes: "Explanada del mirador y Cristo de la Paz son planos y accesibles; acceso en vehículo hasta la cima." },
+    is24h: 0, audioFile: "audios/Morro_audio.mp3",
     transport: { lineas: ["12", "14", "10", "8"], direccion: "sur", letrero: "Centro / Mall", parada: "Pies del Morro" },
     photos: ["https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?w=800&auto=format&fit=crop"],
     videos: [],
-    aiTags: ["morro", "mirador", "guerra del pacifico", "museo", "panorama", "emblema"]
+    aiTags: ["morro", "mirador", "guerra del pacifico", "museo", "panorama", "emblema", "atardecer"]
   },
   {
     name: "Humedal del Río Lluta", category: "Naturaleza", type: "turismo", icon: "Bird", color: "#10B981",
-    shortDesc: "Santuario natural y refugio de aves migratorias.",
-    fullDesc: "Un oasis de vida donde el desierto se encuentra con el mar. El Humedal de la desembocadura del Río Lluta es un Santuario de la Naturaleza de más de 300 hectáreas. Es un punto de descanso y alimentación crucial en la ruta migratoria de más de 160 especies de aves, incluyendo flamencos, patos jergón y gaviotas. Ofrece senderos planos y miradores de madera diseñados para observar la fauna sin perturbar el ecosistema.",
+    shortDesc: "Santuario de la Naturaleza y paraíso de aves migratorias frente al Pacífico.",
+    fullDesc: "Un oasis donde el desierto se encuentra con el océano. El Humedal de la desembocadura del Río Lluta abarca más de 300 hectáreas protegidas como Santuario de la Naturaleza. Es una escala vital en la ruta migratoria de más de 160 especies de aves, incluyendo flamencos chilenos, gaviotas de Franklin, patos jergón y chorlos. Dispone de pasarelas de madera y miradores para observar fauna sin perturbar el ecosistema.",
     lat: -18.416128, lng: -70.322369, hours: "Abierto todo el año · 08:00 - 18:30",
-    directions: "Norte de Arica, por Ruta 5 o Av. Las Dunas. No hay micros directas. Solo taxi o auto particular.",
-    phone: "", website: "", priceRange: "", is24h: 0, audioFile: "audios/Humedal_audio.mp3",
-    transport: { lineas: ["taxi", "auto"], direccion: "norte", letrero: "No hay micros", parada: "Solo vehículo particular" },
+    directions: "Sector norte de Arica, por Ruta 5 Norte o Av. Las Dunas hacia la desembocadura del río Lluta. Taxi o auto particular.",
+    phone: "", website: "", priceRange: "Gratis",
+    entryFee: "Entrada liberada (Santuario protegido)",
+    bestTime: "08:30 a 11:00 hrs cuando la avifauna se alimenta activamente",
+    tips: "Llevar binoculares o cámara con teleobjetivo. Está estrictamente prohibido ingresar con perros o hacer ruidos molestos.",
+    accessibility: { wheelchair: true, ramps: true, adaptedBathrooms: false, notes: "Pasarelas de madera planas con miradores aptos para personas con movilidad reducida." },
+    is24h: 0, audioFile: "audios/Humedal_audio.mp3",
+    transport: { lineas: ["taxi", "auto"], direccion: "norte", letrero: "No hay micros", parada: "Estacionamiento Humedal Lluta" },
     photos: ["https://images.unsplash.com/photo-1544620347-c4fd4a3d5957?w=800&auto=format&fit=crop"],
     videos: [],
-    aiTags: ["humedal", "rio lluta", "aves", "santuario", "naturaleza", "flamencos"]
+    aiTags: ["humedal", "rio lluta", "aves", "santuario", "naturaleza", "flamencos", "ecoturismo"]
   },
   {
     name: "Cuevas de Anzota", category: "Naturaleza", type: "turismo", icon: "Compass", color: "#6366F1",
-    shortDesc: "Sistema de grutas en acantilados, lobos marinos.",
-    fullDesc: "Las Cuevas de Anzota ofrecen uno de los paisajes más dramáticos y hermosos de la región. Talladas durante milenios por el fuerte oleaje del océano contra los acantilados de la Cordillera de la Costa, estas cavernas naturales fueron utilizadas hace miles de años por la cultura Chinchorro. Hoy, un sendero interpretativo te permite caminar dentro de las grutas, observar la rica fauna marina y sentir la imponente fuerza de la naturaleza.",
-    lat: -18.5498, lng: -70.3312, hours: "Abierto todo el año · mejor con marea baja",
-    directions: "12 km al sur por Ruta 1. No hay micros. Solo taxi o auto particular.",
-    phone: "", website: "https://cuevasdeanzota.cl", priceRange: "", is24h: 0, audioFile: "audios/CuevasDeAnzota_audio.mp3",
-    transport: { lineas: ["taxi", "auto"], direccion: "sur", letrero: "No hay micros", parada: "Solo vehículo particular" },
+    shortDesc: "Espectacular sendero en acantilados costeros con cavernas milenarias y lobos marinos.",
+    fullDesc: "Las Cuevas de Anzota presentan uno de los paisajes marinos más sobrecogedores de Chile. Esculpidas durante milenios por el oleaje contra los acantilados de la Cordillera de la Costa, estas cavernas sirvieron como refugio y sitio de recolección para la cultura Chinchorro. Un moderno sendero peatonal interpretativo permite recorrer las grutas, contemplar colonias de lobos marinos y aves guaneras, y sentir la energía del océano.",
+    lat: -18.5498, lng: -70.3312, hours: "Martes a Domingo · 09:00 - 18:00 (último ingreso 17:30)",
+    directions: "12 km al sur de Arica por la costanera Ruta 1. Solo accesible en vehículo particular, tour o taxi.",
+    phone: "+56 58 220 6000", website: "https://cuevasdeanzota.cl", priceRange: "Gratis",
+    entryFee: "Acceso liberado (Administrado por Corporación Costa Chinchorro)",
+    bestTime: "10:00 a 16:00, preferentemente en marea baja",
+    tips: "Uso de casco obligatorio entregado gratuitamente en portería. Llevar calzado cerrado con buena suela para caminar en roca húmeda.",
+    accessibility: { wheelchair: false, ramps: false, adaptedBathrooms: true, notes: "Primer tramo pavimentado; ingreso a cavernas con escaleras de roca no aptas para silla de ruedas." },
+    is24h: 0, audioFile: "audios/CuevasDeAnzota_audio.mp3",
+    transport: { lineas: ["taxi", "auto", "tours"], direccion: "sur", letrero: "No hay micros", parada: "Portería Cuevas de Anzota" },
     photos: ["https://images.unsplash.com/photo-1506744038136-46273834b3fb?w=800&auto=format&fit=crop"],
     videos: [],
-    aiTags: ["anzota", "cuevas", "fauna", "senderismo", "acantilados", "lobos marinos"]
+    aiTags: ["anzota", "cuevas", "fauna", "senderismo", "acantilados", "lobos marinos", "geologia"]
   },
   {
     name: "Terminal Agropecuario ASOCAPEC", category: "Gastronomía", type: "gastronomia", icon: "Utensils", color: "#C2714F",
-    shortDesc: "Corazón gastronómico: aceitunas, frutas, tradición.",
-    fullDesc: "Visitar el 'Agro' es sumergirse en una explosión de colores, aromas y sabores auténticos del norte de Chile. Este inmenso mercado es el punto neurálgico donde los agricultores de los valles de Azapa y Lluta traen sus mejores productos frescos. Aquí podrás degustar las famosas aceitunas de Azapa, frutas tropicales como mangos y maracuyá, y disfrutar de cocinerías tradicionales.",
-    lat: -18.4964, lng: -70.2861, hours: "Todos los días 06:00 - 18:00",
-    directions: "Entrada norte, Panamericana Norte. Micros que digan 'Agro' en el letrero: 12, 14, 8, 16, 113 (líneas naranja y roja).",
-    phone: "", website: "", priceRange: "$", is24h: 0, audioFile: "audios/terminal_audio.mp3",
+    shortDesc: "El corazón gastronómico y agrícola: frutas tropicales, aceitunas de Azapa y cocina local.",
+    fullDesc: "Visitar el 'Agro' es sumergirse en una fiesta de colores, olores y sabores auténticos del norte chileno. Es el gran centro de abastecimiento donde los agricultores de los valles de Azapa y Lluta ofrecen aceitunas moradas y amargas, mangos, maracuyás, guayabas y hortalizas frescas. Además, sus cocinerías tradicionales sirven platos típicos como picante de guata, caldillo de congrio y jugos naturales recién exprimidos a precios económicos.",
+    lat: -18.4964, lng: -70.2861, hours: "Lunes a Domingo · 06:00 - 18:00",
+    directions: "Entrada norte de Arica, Panamericana Norte. Micros que indiquen 'Agro' en letrero: 12, 14, 8, 16, 113.",
+    phone: "", website: "", priceRange: "$",
+    entryFee: "Acceso libre · Platos de almuerzo desde $3.500 a $6.000 CLP",
+    bestTime: "08:00 a 13:30 para comprar frutas frescas y almorzar en cocinerías",
+    tips: "Llevar dinero en efectivo para puestos pequeños; prueba los mangos de Pica/Azapa y el pan batido caliente con aceitunas.",
+    accessibility: { wheelchair: true, ramps: true, adaptedBathrooms: true, notes: "Pasillos centrales anchos y nivelados sin desniveles pronunciados." },
+    is24h: 0, audioFile: "audios/terminal_audio.mp3",
     transport: { lineas: ["12", "14", "8", "16", "113"], direccion: "norte", letrero: "Agro", parada: "Terminal ASOCAPEC" },
     photos: ["https://images.unsplash.com/photo-1488459716781-31db52582fe9?w=800&auto=format&fit=crop"],
     videos: [],
-    aiTags: ["agro", "comida", "aceitunas", "frutas", "mercado", "azapa", "almuerzo"]
+    aiTags: ["agro", "comida", "aceitunas", "frutas", "mercado", "azapa", "almuerzo", "gastronomia"]
   },
   {
     name: "Playa Chinchorro", category: "Playa", type: "turismo", icon: "Waves", color: "#38BDF8",
-    shortDesc: "Extensa playa de aguas cálidas, ideal para familias y caminatas.",
-    fullDesc: "Playa Chinchorro es una de las playas más extensas y concurridas de Arica. Destaca por sus aguas inusualmente cálidas y su oleaje moderado, lo que la hace perfecta para la natación y para disfrutar en familia. Su amplia costanera está llena de vida, rodeada de palmeras, parques infantiles, heladerías y restaurantes.",
+    shortDesc: "Extensa playa de aguas templadas, gran costanera familiar y deportes náuticos.",
+    fullDesc: "Playa Chinchorro es una de las costas más extensas y concurridas de Arica. Destaca por sus aguas inusualmente cálidas y su oleaje suave, convirtiéndola en el lugar perfecto para nadar, practicar surf principiante, caminar en familia o patinar. Su amplia costanera cuenta con palmeras, ciclovías, juegos infantiles, heladerías artesanales y terrazas con vista al mar.",
     lat: -18.4630, lng: -70.3052, hours: "Abierta todo el año · 24 horas",
-    directions: "Sector norte de Arica, Av. Raúl Pey Casado. Toma micro 12 o 14 (letrero 'Centro/Mall' en ida), baja en España con Buenos Aires, camina 1 cuadra hacia el oeste.",
-    phone: "", website: "", priceRange: "", is24h: 1, audioFile: "audios/chinchorro_audio.mp3",
-    transport: { lineas: ["12", "14"], direccion: "norte", letrero: "Centro / Mall", parada: "España con Buenos Aires (luego caminar 1 cuadra)" },
+    directions: "Sector norte de Arica, Av. Raúl Pey Casado. Toma micro 12 o 14 (letrero 'Centro/Mall' en ida) hasta España con Buenos Aires y camina 1 cuadra.",
+    phone: "", website: "", priceRange: "Gratis",
+    entryFee: "Acceso público y gratuito",
+    bestTime: "Tardes de 15:30 a 20:30 para caminatas y puestas de sol",
+    tips: "Excelente para salir a correr o pasear en bicicleta por su costanera iluminada.",
+    accessibility: { wheelchair: true, ramps: true, adaptedBathrooms: true, notes: "Paseo peatonal y costanera completamente planos y pavimentados para sillas de ruedas y coches." },
+    is24h: 1, audioFile: "audios/chinchorro_audio.mp3",
+    transport: { lineas: ["12", "14"], direccion: "norte", letrero: "Centro / Mall", parada: "España con Buenos Aires" },
     photos: ["https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=800&auto=format&fit=crop"],
     videos: [],
-    aiTags: ["chinchorro", "playa", "costanera", "atardecer", "familiar"]
+    aiTags: ["chinchorro", "playa", "costanera", "atardecer", "familiar", "surf", "deportes"]
+  },
+  {
+    name: "Museo Arqueológico San Miguel de Azapa", category: "Museo", type: "turismo", icon: "Landmark", color: "#9333EA",
+    shortDesc: "Principal museo antropológico del norte grande y cuna de las Momias Chinchorro.",
+    fullDesc: "Perteneciente a la Universidad de Tarapacá y emplazado en el fértil Valle de Azapa (Km 12), este célebre museo alberga la colección antropológica más importante del norte chileno. Custodia a las momias de la cultura Chinchorro declaradas Patrimonio de la Humanidad por la UNESCO, junto a impresionantes vestigios textiles prehispánicos, cestería, cerámica tiwanaku y la historia viva de los agricultores afrodescendientes e indígenas del valle.",
+    lat: -18.5204, lng: -70.2017, hours: "Martes a Domingo · 10:00 - 17:30",
+    directions: "Valle de Azapa Km 12. Tomar micro rural o taxi colectivo verde en terminal Rodoviario de Arica.",
+    phone: "+56 58 220 5555", website: "https://masma.uta.cl", priceRange: "$",
+    entryFee: "Adultos: $2.000 CLP · Estudiantes y 3ra edad: $1.000 CLP · Menores de 6 años: Gratis",
+    bestTime: "Mañanas de 10:30 a 14:00 con el clima templado y soleado de Azapa",
+    tips: "Aprovecha de visitar los olivares contiguos para comprar aceitunas y aceite de oliva extra virgen prensado en el valle.",
+    accessibility: { wheelchair: true, ramps: true, adaptedBathrooms: true, notes: "Salas de exhibición y senderos exteriores con rampas para sillas de ruedas." },
+    is24h: 0, audioFile: "",
+    transport: { lineas: ["Rural Azapa", "Colectivo Azapa"], direccion: "este", letrero: "San Miguel de Azapa", parada: "Frontis Museo Arqueológico UTA" },
+    photos: ["https://images.unsplash.com/photo-1544620347-c4fd4a3d5957?w=800&auto=format&fit=crop"],
+    videos: [],
+    aiTags: ["museo", "azapa", "chinchorro", "momias", "arqueologia", "unesco", "valle", "patrimonio"]
+  },
+  {
+    name: "Terminal Pesquero de Arica", category: "Gastronomía", type: "gastronomia", icon: "Utensils", color: "#0284C7",
+    shortDesc: "Ceviches frescos, empanadas de mariscos y avistamiento cercano de lobos marinos y pelícanos.",
+    fullDesc: "Ubicado en el puerto histórico a pocos pasos de la Plaza Colón, el Terminal Pesquero es un punto neurálgico de la cultura costera ariqueña. Aquí puedes almorzar mariscos y pescados recién desembarcados: ceviches de reineta y corvina, peroles marinos y empanadas recién fritas. En los muelles contiguos es clásico observar de cerca a lobos marinos descansando al sol y pelícanos esperando la faena de los pescadores artesanales.",
+    lat: -18.4756, lng: -70.3228, hours: "Lunes a Domingo · 08:00 - 17:00",
+    directions: "Costanera Máximo Lira frente al Puerto de Arica, a 2 cuadras al norte de Plaza Colón.",
+    phone: "", website: "", priceRange: "$$",
+    entryFee: "Acceso libre · Platos de ceviche y pescado desde $5.000 a $9.000 CLP",
+    bestTime: "Almuerzo de 12:00 a 14:30 para comer pescado recién preparado y ver lobos marinos",
+    tips: "No te pierdas las empanadas de jaiba queso y lleva tu cámara para fotografiar a los lobos marinos junto a los botes pesqueros.",
+    accessibility: { wheelchair: true, ramps: true, adaptedBathrooms: false, notes: "Acceso nivelado desde la vereda de la costanera con piso de concreto." },
+    is24h: 0, audioFile: "",
+    transport: { lineas: ["1", "2", "3", "7", "8", "10", "12", "14"], direccion: "centro", letrero: "Centro / Puerto", parada: "Av. Máximo Lira frente al Puerto" },
+    photos: ["https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=800&auto=format&fit=crop"],
+    videos: [],
+    aiTags: ["pesquero", "ceviche", "mariscos", "lobos marinos", "puerto", "almuerzo", "gastronomia"]
+  },
+  {
+    name: "Poblado Artesanal de Arica", category: "Cultura", type: "turismo", icon: "Palette", color: "#D97706",
+    shortDesc: "Aldea réplica del pueblo de Parinacota con artesanía andina viva, orfebrería y talleres.",
+    fullDesc: "Edificado como réplica de los pueblos andinos de la precordillera (con muros de adobe encalado, vigas de madera y piedras volcánicas similares a Parinacota), el Poblado Artesanal reúne a creadores y artesanos locales. En sus talleres abiertos encontrarás orfebrería en plata, alfarería en greda con réplicas Chinchorro, tejidos en lana de alpaca y luthería de instrumentos tradicionales como charangos y zampoñas.",
+    lat: -18.5034, lng: -70.2818, hours: "Martes a Domingo · 10:30 - 19:00",
+    directions: "Calle Hualles 2825, sector Saucache / Rotonda Hualles. Micros 1, 8, 9, 10, 14 con letrero Saucache o Agro.",
+    phone: "+56 58 222 4110", website: "", priceRange: "Gratis",
+    entryFee: "Entrada libre y gratuita",
+    bestTime: "Tardes de 15:00 a 18:30 para conversar con los artesanos en sus talleres",
+    tips: "El mejor lugar en Arica para comprar recuerdos y artesanías auténticas sin intermediarios; cuenta con cafetería en el patio interior.",
+    accessibility: { wheelchair: true, ramps: true, adaptedBathrooms: true, notes: "Patios y accesos en planta baja con senderos pavimentados accesibles." },
+    is24h: 0, audioFile: "",
+    transport: { lineas: ["1", "8", "9", "10", "14"], direccion: "sur-este", letrero: "Saucache / Agro", parada: "Hualles con 18 de Septiembre" },
+    photos: ["https://images.unsplash.com/photo-1488459716781-31db52582fe9?w=800&auto=format&fit=crop"],
+    videos: [],
+    aiTags: ["artesania", "poblado artesanal", "chinchorro", "alpaca", "cultura", "talleres", "recuerdos"]
+  },
+  {
+    name: "Ex-Aduana de Arica (Casa de la Cultura)", category: "Histórico", type: "turismo", icon: "Building2", color: "#475569",
+    shortDesc: "Monumento Nacional diseñado por Gustave Eiffel en París y ensamblado en 1874.",
+    fullDesc: "Una joya arquitectónica del siglo XIX construida por los talleres franceses de Gustave Eiffel en París. Encargada por el gobierno peruano antes de la Guerra del Pacífico, sus piezas metálicas fueron embarcadas a Arica y ensambladas para servir como Aduana Mayor. Su estructura de hierro sobrevivió a grandes terremotos y hoy funciona como la Casa de la Cultura de la Municipalidad de Arica, acogiendo exposiciones artísticas, recitales y muestras culturales.",
+    lat: -18.4772, lng: -70.3204, hours: "Lunes a Viernes · 09:00 - 19:00 | Sábado 10:00 - 14:00",
+    directions: "Av. Máximo Lira con Baquedano, frente al Parque Vicuña Mackenna y puerto de Arica.",
+    phone: "+56 58 220 6000", website: "https://www.muniarica.cl", priceRange: "Gratis",
+    entryFee: "Entrada liberada",
+    bestTime: "Mañanas o tardes para combinar con el Parque Vicuña Mackenna y la Iglesia San Marcos",
+    tips: "Observa los pilares y remaches franceses originales idénticos a las técnicas constructivas de la Torre Eiffel.",
+    accessibility: { wheelchair: true, ramps: true, adaptedBathrooms: true, notes: "Rampa en acceso principal directo desde la explanada del parque." },
+    is24h: 0, audioFile: "",
+    transport: { lineas: ["1", "2", "3", "7", "8", "10", "12", "14"], direccion: "centro", letrero: "Centro", parada: "Parque Vicuña Mackenna" },
+    photos: ["https://images.unsplash.com/photo-1548625361-195fe210b484?w=800&auto=format&fit=crop"],
+    videos: [],
+    aiTags: ["aduana", "eiffel", "casa de la cultura", "patrimonio", "historia", "monumento", "centro"]
+  },
+  {
+    name: "Parque Nacional Lauca y Lago Chungará", category: "Naturaleza", type: "turismo", icon: "MountainSnow", color: "#059669",
+    shortDesc: "Reserva Mundial de la Biósfera a 4.500 msnm con el lago más alto del mundo y volcanes gemelos.",
+    fullDesc: "Declarado Reserva de la Biósfera por la UNESCO, el Parque Nacional Lauca es una de las grandes maravillas naturales de Chile. Ubicado en el altiplano de la región a 4.500 msnm, acoge al deslumbrante Lago Chungará, rodeado por los imponentes volcanes gemelos Parinacota y Pomerape (los Payachatas). Es el hogar de una asombrosa fauna andina: vicuñas silvestres, vizcachas, llamas, alpacas y bandadas de flamencos andinos.",
+    lat: -18.2505, lng: -69.1558, hours: "Abierto todo el año · 08:30 - 17:00",
+    directions: "Ruta 11-CH (Carretera Internacional a Bolivia), a 180 km al este de Arica (aprox. 3,5 horas en vehículo). Se recomienda tour guiado o 4x4.",
+    phone: "+56 58 225 0570", website: "https://www.conaf.cl", priceRange: "Gratis",
+    entryFee: "Ingreso al parque regulado por CONAF (generalmente liberado)",
+    bestTime: "Entre marzo y diciembre; salir muy temprano desde Arica (06:30 AM)",
+    tips: "Imprescindible aclimatarse en Putre para evitar la puna (mal de altura); llevar ropa térmica cortaviento, abundante agua, frutos secos y protección solar.",
+    accessibility: { wheelchair: false, ramps: false, adaptedBathrooms: true, notes: "Senderos de tierra volcánica; extremar precaución por la altitud extrema (4.500 msnm)." },
+    is24h: 0, audioFile: "",
+    transport: { lineas: ["Tours guiados", "Buses a Putre / Bolivia"], direccion: "cordillera", letrero: "Putre / Tambo Quemado", parada: "Refugio CONAF Chungará" },
+    photos: ["https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?w=800&auto=format&fit=crop"],
+    videos: [],
+    aiTags: ["chungara", "lauca", "altiplano", "volcan", "parinacota", "vicuñas", "flamencos", "reserva"]
   }
 ];
 
@@ -373,7 +570,6 @@ export async function seedDatabase(adminUser = 'admin', adminPass = 'turiarica20
           [adm.username, hash, adm.role]
         );
       }
-      console.log('[DB] 🐬 MySQL: Usuarios administradores verificados: jorell, nicolas, admin.');
 
       // Events
       const [eventCountRows] = await mysqlPool.query('SELECT COUNT(*) as count FROM events');
@@ -384,14 +580,9 @@ export async function seedDatabase(adminUser = 'admin', adminPass = 'turiarica20
         `, [
           'Carnaval Andino con la Fuerza del Sol 2026',
           '¡El evento cultural y de danzas más grande del norte de Chile! Vive 3 días de emoción, comparsas y tradición andina a los pies del Morro de Arica. Más de 16.000 bailarines y músicos.',
-          'festival',
-          '2026-01-23',
-          '2026-02-15',
-          1,
-          1,
+          'festival', '2026-01-23', '2026-02-15', 1, 1,
           'https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=800&auto=format&fit=crop',
-          'https://aricafuerzadelsol.cl',
-          1
+          'https://aricafuerzadelsol.cl', 1
         ]);
 
         await mysqlPool.query(`
@@ -400,40 +591,55 @@ export async function seedDatabase(adminUser = 'admin', adminPass = 'turiarica20
         `, [
           'Aviso Preventivo: Oleaje y Bandera Amarilla en Playas',
           'Capitanía de Puerto de Arica informa aviso preventivo de marejadas moderadas en el sector costero. Se recomienda máxima precaución a bañistas en playas El Laucho y Chinchorro.',
-          'alerta',
-          '2026-03-01',
-          '2026-03-31',
-          1,
-          0,
-          '',
-          '',
-          2
+          'alerta', '2026-03-01', '2026-03-31', 1, 0, '', '', 2
         ]);
-        console.log('[DB] 🐬 MySQL: Eventos y notificaciones inicializados.');
       }
 
-      // Places
-      const [placeCountRows] = await mysqlPool.query('SELECT COUNT(*) as count FROM places');
-      if (Number(placeCountRows[0]?.count) === 0) {
-        for (const p of initialPlaces) {
+      // Places Upsert (Inserta los nuevos y actualiza con los campos enriquecidos a los existentes)
+      for (const p of initialPlaces) {
+        const [existing] = await mysqlPool.query('SELECT id FROM places WHERE name = ? LIMIT 1', [p.name]);
+        if (existing.length === 0) {
           await mysqlPool.query(`
             INSERT INTO places (
               name, category, type, icon, color, short_desc, full_desc, lat, lng,
-              hours, directions, phone, website, price_range, is_24h, audio_file,
-              transport_json, photos_json, videos_json, ai_tags_json, is_default
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1)
+              hours, directions, phone, website, price_range, entry_fee, best_time, tips, is_24h, audio_file,
+              transport_json, photos_json, videos_json, ai_tags_json, accessibility_json, is_default
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1)
           `, [
             p.name, p.category, p.type, p.icon, p.color, p.shortDesc, p.fullDesc,
             p.lat, p.lng, p.hours, p.directions, p.phone, p.website, p.priceRange,
-            p.is24h, p.audioFile || '',
+            p.entryFee || '', p.bestTime || '', p.tips || '',
+            p.is24h ? 1 : 0, p.audioFile || '',
             JSON.stringify(p.transport || {}),
             JSON.stringify(p.photos || []),
             JSON.stringify(p.videos || []),
-            JSON.stringify(p.aiTags || [])
+            JSON.stringify(p.aiTags || []),
+            JSON.stringify(p.accessibility || {}),
+          ]);
+        } else {
+          await mysqlPool.query(`
+            UPDATE places SET
+              category = ?, type = ?, icon = ?, color = ?, short_desc = ?, full_desc = ?,
+              lat = ?, lng = ?, hours = ?, directions = ?, phone = ?, website = ?,
+              price_range = ?, entry_fee = ?, best_time = ?, tips = ?, is_24h = ?,
+              audio_file = ?, transport_json = ?, photos_json = ?, videos_json = ?,
+              ai_tags_json = ?, accessibility_json = ?
+            WHERE id = ?
+          `, [
+            p.category, p.type, p.icon, p.color, p.shortDesc, p.fullDesc,
+            p.lat, p.lng, p.hours, p.directions, p.phone, p.website,
+            p.priceRange, p.entryFee || '', p.bestTime || '', p.tips || '',
+            p.is24h ? 1 : 0, p.audioFile || '',
+            JSON.stringify(p.transport || {}),
+            JSON.stringify(p.photos || []),
+            JSON.stringify(p.videos || []),
+            JSON.stringify(p.aiTags || []),
+            JSON.stringify(p.accessibility || {}),
+            existing[0].id
           ]);
         }
-        console.log(`[DB] 🐬 MySQL: ${initialPlaces.length} lugares turísticos de Arica inicializados.`);
       }
+      console.log(`[DB] 🐬 MySQL: 13 lugares turísticos de Arica y Parinacota sincronizados.`);
       return;
     } catch (err) {
       console.error('[DB SEED MYSQL ERROR]', err);
@@ -468,35 +674,57 @@ export async function seedDatabase(adminUser = 'admin', adminPass = 'turiarica20
         );
       }
 
-      const placeCount = sqliteDb.prepare('SELECT COUNT(*) as count FROM places').get().count;
-      if (placeCount === 0) {
-        const insertPlace = sqliteDb.prepare(`
-          INSERT INTO places (
-            name, category, type, icon, color, short_desc, full_desc, lat, lng,
-            hours, directions, phone, website, price_range, is_24h, audio_file,
-            transport_json, photos_json, videos_json, ai_tags_json, is_default
-          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1)
-        `);
-        for (const p of initialPlaces) {
-          insertPlace.run(
+      for (const p of initialPlaces) {
+        const existing = sqliteDb.prepare('SELECT id FROM places WHERE name = ?').get(p.name);
+        if (!existing) {
+          sqliteDb.prepare(`
+            INSERT INTO places (
+              name, category, type, icon, color, short_desc, full_desc, lat, lng,
+              hours, directions, phone, website, price_range, entry_fee, best_time, tips, is_24h, audio_file,
+              transport_json, photos_json, videos_json, ai_tags_json, accessibility_json, is_default
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1)
+          `).run(
             p.name, p.category, p.type, p.icon, p.color, p.shortDesc, p.fullDesc,
             p.lat, p.lng, p.hours, p.directions, p.phone, p.website, p.priceRange,
-            p.is24h, p.audioFile || '',
+            p.entryFee || '', p.bestTime || '', p.tips || '',
+            p.is24h ? 1 : 0, p.audioFile || '',
             JSON.stringify(p.transport || {}),
             JSON.stringify(p.photos || []),
             JSON.stringify(p.videos || []),
-            JSON.stringify(p.aiTags || [])
+            JSON.stringify(p.aiTags || []),
+            JSON.stringify(p.accessibility || {})
+          );
+        } else {
+          sqliteDb.prepare(`
+            UPDATE places SET
+              category = ?, type = ?, icon = ?, color = ?, short_desc = ?, full_desc = ?,
+              lat = ?, lng = ?, hours = ?, directions = ?, phone = ?, website = ?,
+              price_range = ?, entry_fee = ?, best_time = ?, tips = ?, is_24h = ?,
+              audio_file = ?, transport_json = ?, photos_json = ?, videos_json = ?,
+              ai_tags_json = ?, accessibility_json = ?
+            WHERE id = ?
+          `).run(
+            p.category, p.type, p.icon, p.color, p.shortDesc, p.fullDesc,
+            p.lat, p.lng, p.hours, p.directions, p.phone, p.website,
+            p.priceRange, p.entryFee || '', p.bestTime || '', p.tips || '',
+            p.is24h ? 1 : 0, p.audioFile || '',
+            JSON.stringify(p.transport || {}),
+            JSON.stringify(p.photos || []),
+            JSON.stringify(p.videos || []),
+            JSON.stringify(p.aiTags || []),
+            JSON.stringify(p.accessibility || {}),
+            existing.id
           );
         }
       }
-      console.log('[DB] 🗄️ SQLite: Datos iniciales verificados.');
+      console.log('[DB] 🗄️ SQLite: 13 lugares sincronizados.');
     } catch (err) {
       console.error('[DB SEED SQLITE ERROR]', err);
     }
   }
 }
 
-// 4. Operaciones Asíncronas (MySQL con Fallback SQLite)
+// 4. Operaciones Asíncronas
 export const dbOperations = {
   // --- Admins ---
   async findAdminByUsername(username) {
@@ -572,21 +800,25 @@ export const dbOperations = {
       data.phone || '',
       data.website || '',
       data.priceRange || '',
+      data.entryFee || '',
+      data.bestTime || '',
+      data.tips || '',
       data.is24h ? 1 : 0,
       data.audioFile || '',
       JSON.stringify(data.transport || {}),
       JSON.stringify(data.photos || []),
       JSON.stringify(data.videos || []),
-      JSON.stringify(data.aiTags || [])
+      JSON.stringify(data.aiTags || []),
+      JSON.stringify(data.accessibility || {})
     ];
 
     if (activeEngine === 'mysql' && mysqlPool) {
       const [res] = await mysqlPool.query(`
         INSERT INTO places (
           name, category, type, icon, color, short_desc, full_desc, lat, lng,
-          hours, directions, phone, website, price_range, is_24h, audio_file,
-          transport_json, photos_json, videos_json, ai_tags_json, is_default
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0)
+          hours, directions, phone, website, price_range, entry_fee, best_time, tips, is_24h, audio_file,
+          transport_json, photos_json, videos_json, ai_tags_json, accessibility_json, is_default
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0)
       `, params);
       return await this.getPlaceById(res.insertId);
     }
@@ -595,9 +827,9 @@ export const dbOperations = {
       const stmt = sqliteDb.prepare(`
         INSERT INTO places (
           name, category, type, icon, color, short_desc, full_desc, lat, lng,
-          hours, directions, phone, website, price_range, is_24h, audio_file,
-          transport_json, photos_json, videos_json, ai_tags_json, is_default
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0)
+          hours, directions, phone, website, price_range, entry_fee, best_time, tips, is_24h, audio_file,
+          transport_json, photos_json, videos_json, ai_tags_json, accessibility_json, is_default
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0)
       `);
       const res = stmt.run(...params);
       return await this.getPlaceById(res.lastInsertRowid);
@@ -621,12 +853,16 @@ export const dbOperations = {
       data.phone || '',
       data.website || '',
       data.priceRange || '',
+      data.entryFee || '',
+      data.bestTime || '',
+      data.tips || '',
       data.is24h ? 1 : 0,
       data.audioFile || '',
       JSON.stringify(data.transport || {}),
       JSON.stringify(data.photos || []),
       JSON.stringify(data.videos || []),
       JSON.stringify(data.aiTags || []),
+      JSON.stringify(data.accessibility || {}),
       id
     ];
 
@@ -636,8 +872,9 @@ export const dbOperations = {
           name = ?, category = ?, type = ?, icon = ?, color = ?,
           short_desc = ?, full_desc = ?, lat = ?, lng = ?,
           hours = ?, directions = ?, phone = ?, website = ?, price_range = ?,
+          entry_fee = ?, best_time = ?, tips = ?,
           is_24h = ?, audio_file = ?, transport_json = ?, photos_json = ?,
-          videos_json = ?, ai_tags_json = ?, updated_at = CURRENT_TIMESTAMP
+          videos_json = ?, ai_tags_json = ?, accessibility_json = ?, updated_at = CURRENT_TIMESTAMP
         WHERE id = ?
       `, params);
       return await this.getPlaceById(id);
@@ -649,8 +886,9 @@ export const dbOperations = {
           name = ?, category = ?, type = ?, icon = ?, color = ?,
           short_desc = ?, full_desc = ?, lat = ?, lng = ?,
           hours = ?, directions = ?, phone = ?, website = ?, price_range = ?,
+          entry_fee = ?, best_time = ?, tips = ?,
           is_24h = ?, audio_file = ?, transport_json = ?, photos_json = ?,
-          videos_json = ?, ai_tags_json = ?, updated_at = CURRENT_TIMESTAMP
+          videos_json = ?, ai_tags_json = ?, accessibility_json = ?, updated_at = CURRENT_TIMESTAMP
         WHERE id = ?
       `);
       stmt.run(...params);
@@ -774,4 +1012,4 @@ export const dbOperations = {
   }
 };
 
-export default { initDatabase, seedDatabase, dbOperations, getActiveEngine };
+export default { initDatabase, seedDatabase, dbOperations, getActiveEngine, initialPlaces };

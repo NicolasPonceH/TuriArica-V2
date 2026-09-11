@@ -52,12 +52,18 @@ async function buildOfficialContext() {
     const parada = p.transport?.parada || 'N/A';
     const direccion = p.transport?.direccion || '';
     const letrero = p.transport?.letrero || '';
+    const acc = p.accessibility || {};
+    const accText = `Silla de ruedas: ${acc.wheelchair ? 'Sí' : 'No'} | Rampas: ${acc.ramps ? 'Sí' : 'No'} | Baños adaptados: ${acc.adaptedBathrooms ? 'Sí' : 'No'}${acc.notes ? ` (${acc.notes})` : ''}`;
+
     return `### ${p.name} (Categoría: ${p.category} | Tipo: ${p.type})
 - Descripción: ${p.fullDesc || p.shortDesc}
 - Ubicación: Latitud ${p.lat}, Longitud ${p.lng}
 - Cómo llegar / Locomoción: Micros [${busLines}]. Parada: ${parada}. Dirección/Letrero: ${letrero || direccion || 'N/A'}. Indicaciones adicionales: ${p.directions || 'Ver mapa'}.
 - Horarios: ${p.hours || 'Sin horario especificado'}
-- Precios: ${p.priceRange || 'Gratuito / Acceso libre'}
+- Tarifas / Entrada: ${p.entryFee || p.priceRange || 'Gratuito / Acceso libre'}
+- Mejor momento para visitar: ${p.bestTime || 'Cualquier momento del día'}
+- Consejos prácticos del guía: ${p.tips || 'Disfrutar con responsabilidad'}
+- Accesibilidad Universal: ${accText}
 - Teléfono / Contacto: ${p.phone || 'N/A'} | Web: ${p.website || 'N/A'}
 - Etiquetas de búsqueda: ${(p.aiTags || []).join(', ')}`;
   }).join('\n\n');
