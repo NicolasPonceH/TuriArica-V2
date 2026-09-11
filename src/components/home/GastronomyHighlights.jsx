@@ -1,4 +1,5 @@
 import { Utensils, Sparkles, MapPin, ExternalLink, ArrowRight } from 'lucide-react';
+import { useLanguage } from '../../contexts/LanguageContext';
 
 const DISHES = [
   {
@@ -40,18 +41,20 @@ const DISHES = [
 ];
 
 export default function GastronomyHighlights({ onSelectPlace }) {
+  const { t } = useLanguage();
+
   return (
     <section className="max-w-6xl mx-auto px-4 sm:px-6 my-16">
       <div className="text-center mb-10">
         <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-amber-50 text-amber-800 text-xs font-black uppercase tracking-wider mb-2 border border-amber-200">
           <Utensils size={14} className="text-amber-600" />
-          <span>Sabores de la Eterna Primavera</span>
+          <span>{t('gastro.badge')}</span>
         </div>
         <h2 className="text-3xl sm:text-4xl font-black text-slate-900 tracking-tight">
-          Ruta Gastronómica Autóctona
+          {t('gastro.title')}
         </h2>
         <p className="text-slate-500 text-sm sm:text-base max-w-xl mx-auto mt-2">
-          Descubre los sabores únicos nacidos de la mezcla entre el Océano Pacífico, los valles fértiles y la tradición andina.
+          {t('gastro.subtitle')}
         </p>
       </div>
 

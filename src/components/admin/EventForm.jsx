@@ -1,12 +1,14 @@
 import { useState } from 'react';
-import { Save, Calendar, AlertTriangle, Sparkles, Upload, Image, Link, Check } from 'lucide-react';
+import { Save, Calendar, AlertTriangle, Sparkles, Upload, Image, Link, Check, Tag, MapPin, Store } from 'lucide-react';
 import { useEvents } from '../../contexts/EventsContext';
+import { usePlaces } from '../../contexts/PlacesContext';
 import { useAuth } from '../../contexts/AuthContext';
 import { API_BASE_URL, resolveMediaUrl } from '../../utils/constants';
 
 export default function EventForm({ event, onDone }) {
   const isEditing = !!event;
   const { createEvent, updateEvent } = useEvents();
+  const { places = [] } = usePlaces();
   const { token } = useAuth();
 
   const [form, setForm] = useState({
@@ -20,6 +22,9 @@ export default function EventForm({ event, onDone }) {
     bannerUrl: event?.bannerUrl || '',
     actionUrl: event?.actionUrl || '',
     priority: event?.priority || 1,
+    placeId: event?.placeId || '',
+    placeName: event?.placeName || '',
+    discountBadge: event?.discountBadge || '',
   });
 
   const [uploading, setUploading] = useState(false);
@@ -102,10 +107,11 @@ export default function EventForm({ event, onDone }) {
               onChange={(e) => updateField('type', e.target.value)}
               className={inputClass}
             >
-              <option value="festival">🎉 Festival / Carnaval</option>
-              <option value="evento">📅 Evento General</option>
-              <option value="cultural">🎭 Evento Cultural</option>
-              <option value="alerta">⚠️ Alerta / Aviso Preventivo</option>
+              <option value="evento">Evento General</option>
+              <option value="promocion">Promoción / Oferta de Local</option>
+              <option value="festival">Festival / Carnaval</option>
+              <option value="cultural">Evento Cultural</option>
+              <option value="alerta">Alerta / Aviso Preventivo</option>
             </select>
           </div>
 
@@ -121,6 +127,63 @@ export default function EventForm({ event, onDone }) {
               <option value={3}>3 - Prioridad Normal</option>
             </select>
           </div>
+        </div>
+
+        {/* Local / Venue Association */}
+        <div className="p-4 bg-sky-50/70 rounded-2xl border border-sky-100 space-y-3">
+          <div className="flex items-center gap-2 text-sky-800 font-bold text-xs uppercase tracking-wider">
+            <Store size={15} className="text-sky-600" />
+            <span>Vincular a Local, Restaurante o Atractivo</span>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div>
+              <label className="block text-xs font-semibold text-slate-700 mb-1">
+                Lugar Asociado (Opcional)
+              </label>
+              <select
+                value={form.placeId}
+                onChange={(e) => {
+                  const selectedId = e.target.value;
+                  const found = places.find(p => String(p.id) === String(selectedId));
+                  setForm(prev => ({
+                    ...prev,
+                    placeId: selectedId,
+                    placeName: found ? found.name : '',
+                    type: prev.type === 'evento' && selectedId ? 'promocion' : prev.type
+                  }));
+                }}
+                className={inputClass}
+              >
+                <option value="">-- Evento General (Sin local específico) --</option>
+                {places.map(p => (
+                  <option key={p.id} value={p.id}>
+                    {p.name} ({p.category})
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-xs font-semibold text-slate-700 mb-1">
+                <Tag size={12} className="inline mr-1 text-sky-600" />
+                Etiqueta / Descuento (Ej: 20% Dcto, 2x1)
+              </label>
+              <input
+                type="text"
+                value={form.discountBadge}
+                onChange={(e) => updateField('discountBadge', e.target.value)}
+                className={inputClass}
+                placeholder="Ej: 20% Dcto, 2x1 en cócteles, Menú $5.990"
+              />
+            </div>
+          </div>
+          {form.placeName && (
+            <p className="text-xs text-sky-700 font-medium flex items-center gap-1">
+              <MapPin size={13} className="text-sky-600" />
+              Asociado a: <strong className="font-bold">{form.placeName}</strong>. Aparecerá destacado en el mapa y ficha del local.
+            </p>
+          )}
         </div>
 
         <div>

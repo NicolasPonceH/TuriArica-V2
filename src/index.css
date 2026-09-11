@@ -79,6 +79,11 @@
     font-feature-settings: "cv02", "cv03", "cv04", "cv11";
   }
 
+  /* Mapa Nocturno Ilimitado: Filtro optimizado para OpenStreetMap sin requerir API keys de CARTO */
+  .map-dark-filter .maplibregl-canvas {
+    filter: invert(90%) hue-rotate(195deg) brightness(85%) contrast(125%);
+  }
+
   /* Dark Mode / High Contrast Optimization */
   body.high-contrast {
     background-color: #0b1329 !important;

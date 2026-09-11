@@ -50,8 +50,8 @@ export default function AdminLogin() {
       >
         {/* Header */}
         <div className="text-center mb-7">
-          <div className="w-16 h-16 bg-gradient-to-br from-brand-500 to-accent-500 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-xl shadow-brand-500/25">
-            <Mountain size={32} className="text-white" />
+          <div className="w-24 h-24 sm:w-28 sm:h-28 flex items-center justify-center mx-auto mb-4 drop-shadow-md">
+            <img src="/logo.png" alt="TuriArica" className="w-full h-full object-contain" />
           </div>
           <h1 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">TuriArica Admin</h1>
           <p className="text-slate-500 text-xs sm:text-sm mt-1 font-medium">

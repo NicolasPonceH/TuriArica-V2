@@ -13,10 +13,12 @@ export default function Navigation() {
     >
       <div className="max-w-6xl mx-auto glass-panel rounded-2xl px-4 sm:px-6 py-2.5 sm:py-3 flex justify-between items-center bg-white/85 backdrop-blur-xl border border-white/60 shadow-lg shadow-black/5">
         <a href="#inicio" className="flex items-center gap-2 font-bold text-lg sm:text-xl text-gray-900">
-          <div className="p-1.5 rounded-xl bg-accent-500/10 text-accent-500">
-            <Mountain size={22} />
-          </div>
-          <span>TuriArica</span>
+          <img
+            src="/logo.png"
+            alt="TuriArica"
+            className="h-14 sm:h-18 w-auto max-w-[200px] object-contain drop-shadow-sm"
+          />
+          <span className="sr-only">TuriArica</span>
         </a>
         
         {/* Desktop Links */}

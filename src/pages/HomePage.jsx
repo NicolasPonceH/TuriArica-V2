@@ -11,13 +11,15 @@ import PlaceDetailModal from '../components/shared/PlaceDetailModal';
 import PWAInstallPrompt from '../components/shared/PWAInstallPrompt';
 import EventPopupModal from '../components/shared/EventPopupModal';
 import GastronomyHighlights from '../components/home/GastronomyHighlights';
+import FAQSection from '../components/home/FAQSection';
 import ItineraryPlannerModal from '../components/shared/ItineraryPlannerModal';
 import { usePlaces } from '../contexts/PlacesContext';
 import { useLanguage } from '../contexts/LanguageContext';
 import { motion, AnimatePresence } from 'framer-motion';
 import { calculateHaversine } from '../utils/haversine';
 import { API, FALLBACK_LOCATION, SERVER_URL } from '../utils/constants';
-import { Sparkles, Compass } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { Sparkles, Compass, Map, ChevronDown, ChevronUp, Maximize2 } from 'lucide-react';
 
 const CLIMATE_THEMES = {
   clear: {
@@ -126,6 +128,17 @@ export default function HomePage() {
     ? filteredByType
     : filteredByType.filter(p => p.category === activeCategory);
 
+  // Paginación limpia: mostrar inicialmente 6 lugares para no saturar la vista
+  const INITIAL_VISIBLE_COUNT = 6;
+  const [visibleCount, setVisibleCount] = useState(INITIAL_VISIBLE_COUNT);
+
+  useEffect(() => {
+    setVisibleCount(INITIAL_VISIBLE_COUNT);
+  }, [activeCategory, activeType]);
+
+  const displayedPlaces = filteredPlaces.slice(0, visibleCount);
+  const hasMorePlaces = filteredPlaces.length > visibleCount;
+
   const handleAudioClick = (place) => {
     if (currentAudio) {
       currentAudio.pause();
@@ -230,18 +243,16 @@ export default function HomePage() {
         <Hero3D
           weatherData={liveWeather ? {
             temp: liveWeather.current.temp,
-            condition: previewCondition ? (previewCondition === 'clear' ? 'Soleado' : previewCondition === 'cloudy' ? 'Nublado' : previewCondition === 'sunset' ? 'Atardecer' : 'Noche Despejada') : liveWeather.current.condition,
+            condition: liveWeather.current.condition,
             conditionType: activeCondition,
-            conditionDesc: previewCondition ? (previewCondition === 'clear' ? 'Sol radiante de Eterna Primavera' : previewCondition === 'cloudy' ? 'Cielo cubierto con nubosidad costera' : previewCondition === 'sunset' ? 'Atardecer dorado frente al Pacífico' : 'Noche serena bajo el cielo del norte') : liveWeather.current.conditionDesc,
+            conditionDesc: liveWeather.current.conditionDesc,
             humidity: liveWeather.current.humidity,
             windSpeedKmH: liveWeather.current.windSpeedKmH,
             windDirection: liveWeather.current.windDirection,
-            uvIndex: previewCondition === 'night' ? 0 : previewCondition === 'cloudy' ? 1 : liveWeather.current.uvIndex,
+            uvIndex: liveWeather.current.uvIndex,
             stationName: liveWeather.station?.name || 'Arica - Capitanía de Puerto'
           } : null}
           activeCondition={activeCondition}
-          previewCondition={previewCondition}
-          onSetPreviewCondition={setPreviewCondition}
         />
 
         <AccessibilityToolbar
@@ -307,7 +318,7 @@ export default function HomePage() {
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           <AnimatePresence mode="popLayout">
-            {filteredPlaces.map(place => (
+            {displayedPlaces.map(place => (
               <PlaceCard
                 key={place.id}
                 place={place}
@@ -319,9 +330,46 @@ export default function HomePage() {
           </AnimatePresence>
         </div>
 
+        {/* Barra de acción: Ver más lugares o explorar todos en el mapa completo */}
+        {filteredPlaces.length > INITIAL_VISIBLE_COUNT && (
+          <div className="mt-10 flex flex-col sm:flex-row items-center justify-center gap-4">
+            {hasMorePlaces ? (
+              <button
+                onClick={() => setVisibleCount(prev => prev + 6)}
+                className="px-6 py-3.5 rounded-2xl bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-800 dark:text-white font-bold text-sm shadow-md border border-slate-200 dark:border-slate-700 flex items-center gap-2.5 transition-all duration-200 hover:scale-[1.02] active:scale-[0.98] cursor-pointer"
+              >
+                <ChevronDown size={18} className="text-brand-500" />
+                <span>{t('places.showMore')}</span>
+                <span className="px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-900 text-xs font-semibold text-slate-600 dark:text-slate-300">
+                  +{Math.min(6, filteredPlaces.length - visibleCount)} de {filteredPlaces.length - visibleCount}
+                </span>
+              </button>
+            ) : (
+              <button
+                onClick={() => {
+                  setVisibleCount(INITIAL_VISIBLE_COUNT);
+                  document.getElementById('lugares')?.scrollIntoView({ behavior: 'smooth' });
+                }}
+                className="px-6 py-3.5 rounded-2xl bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 font-bold text-sm shadow-md border border-slate-200 dark:border-slate-700 flex items-center gap-2 transition-all duration-200 hover:scale-[1.02] active:scale-[0.98] cursor-pointer"
+              >
+                <ChevronUp size={18} className="text-slate-500" />
+                <span>{t('places.showLess')}</span>
+              </button>
+            )}
+
+            <a
+              href="#mapa"
+              className="px-6 py-3.5 rounded-2xl bg-gradient-to-r from-brand-600 to-sky-600 hover:from-brand-500 hover:to-sky-500 text-white font-bold text-sm shadow-lg shadow-sky-500/20 flex items-center gap-2.5 transition-all duration-200 hover:scale-[1.02] active:scale-[0.98] cursor-pointer"
+            >
+              <Map size={18} />
+              <span>{t('places.viewAllMap')} ({filteredPlaces.length})</span>
+            </a>
+          </div>
+        )}
+
         {filteredPlaces.length === 0 && (
           <div className="text-center py-12">
-            <p className="text-gray-400 text-lg">No hay lugares en esta categoría aún.</p>
+            <p className="text-gray-400 text-lg">{t('places.empty')}</p>
           </div>
         )}
       </main>
@@ -339,8 +387,8 @@ export default function HomePage() {
             viewport={{ once: true }}
             className="mb-8"
           >
-            <h2 className="text-3xl md:text-5xl font-bold mb-4 text-gray-900">{t('map.title')}</h2>
-            <p className="text-gray-500 text-lg">{t('map.subtitle')}</p>
+            <h2 className="text-3xl md:text-5xl font-bold mb-3 text-slate-900">{t('map.title')}</h2>
+            <p className="text-slate-500 text-base sm:text-lg max-w-2xl">{t('map.subtitle')}</p>
           </motion.div>
 
           <InteractiveMap
@@ -358,6 +406,9 @@ export default function HomePage() {
           />
         </div>
       </section>
+
+      {/* FAQ Section */}
+      <FAQSection />
 
       <Footer />
 

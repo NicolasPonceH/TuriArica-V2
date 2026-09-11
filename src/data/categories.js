@@ -23,8 +23,19 @@ export const CATEGORIES = [
   { id: "Supermercado", label: "Supermercado", icon: "ShoppingCart", color: "#EA580C", type: "servicio" },
   { id: "Transporte", label: "Transporte", icon: "Bus", color: "#2563EB", type: "servicio" },
 
-  // Salud
+  // Salud y Emergencias
   { id: "Salud", label: "Salud", icon: "Hospital", color: "#DC2626", type: "salud" },
+  { id: "Hospitales", label: "Hospitales", icon: "Hospital", color: "#DC2626", type: "emergencia" },
+  { id: "Centros de Salud", label: "Centros de Salud", icon: "HeartPulse", color: "#E11D48", type: "emergencia" },
+  { id: "Comisarías", label: "Comisarías", icon: "ShieldAlert", color: "#1E3A8A", type: "emergencia" },
+  { id: "Bomberos", label: "Bomberos", icon: "Flame", color: "#B91C1C", type: "emergencia" },
+  { id: "Puntos de Encuentro", label: "Puntos de Encuentro", icon: "LifeBuoy", color: "#059669", type: "emergencia" },
+  { id: "Vías de Evacuación", label: "Vías de Evacuación", icon: "Footprints", color: "#10B981", type: "emergencia" },
+  { id: "Zonas de Riesgo", label: "Zonas de Riesgo Tsunami", icon: "AlertTriangle", color: "#EF4444", type: "emergencia" },
+
+  // Alumbrado e Iluminación
+  { id: "Focos de Luz", label: "Focos de Luz", icon: "SunMedium", color: "#F59E0B", type: "iluminacion" },
+  { id: "Zonas Iluminadas", label: "Zonas Iluminadas", icon: "Sparkles", color: "#FBBF24", type: "iluminacion" },
 ];
 
 export const CATEGORY_TYPES = [
@@ -33,6 +44,8 @@ export const CATEGORY_TYPES = [
   { id: "gastronomia", label: "Gastronomía", icon: "Utensils" },
   { id: "servicio", label: "Servicios", icon: "Building2" },
   { id: "salud", label: "Salud", icon: "Heart" },
+  { id: "emergencia", label: "Emergencia / Evacuación", icon: "ShieldAlert" },
+  { id: "iluminacion", label: "Alumbrado Público", icon: "SunMedium" },
 ];
 
 /**

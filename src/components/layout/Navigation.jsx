@@ -22,17 +22,17 @@ export default function Navigation() {
       initial={{ y: -80, opacity: 0 }}
       animate={{ y: 0, opacity: 1 }}
       transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
-      className="fixed top-0 left-0 right-0 z-50 px-4 sm:px-6 py-3 sm:py-4 pointer-events-none"
+      className="fixed top-0 left-0 right-0 z-50 px-4 sm:px-6 py-2 sm:py-2.5 pointer-events-none"
     >
-      <div className="max-w-6xl mx-auto glass-panel rounded-2xl px-4 sm:px-6 py-3 flex justify-between items-center relative pointer-events-auto">
+      <div className="max-w-6xl mx-auto glass-panel rounded-2xl px-4 sm:px-6 py-2 sm:py-2.5 flex justify-between items-center relative pointer-events-auto">
         {/* Logo */}
-        <Link to="/" className="flex items-center gap-2.5 font-extrabold text-xl text-gray-900 shrink-0 group">
-          <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-accent-500 to-brand-500 flex items-center justify-center text-white shadow-xs group-hover:scale-105 transition-transform">
-            <Mountain size={18} />
-          </div>
-          <span className="hidden sm:inline tracking-tight font-black bg-gradient-to-r from-gray-900 to-gray-700 bg-clip-text text-transparent">
-            TuriArica
-          </span>
+        <Link to="/" className="flex items-center gap-2 shrink-0 group">
+          <img
+            src="/logo.png"
+            alt="TuriArica"
+            className="h-9 sm:h-10 md:h-11 w-auto max-w-[180px] object-contain drop-shadow-xs group-hover:scale-105 transition-transform"
+          />
+          <span className="sr-only">TuriArica</span>
         </Link>
 
         {/* Desktop Nav */}
@@ -56,6 +56,16 @@ export default function Navigation() {
 
         {/* Right actions */}
         <div className="flex items-center gap-2">
+          {/* Dedicated full screen map icon button */}
+          <Link
+            to="/mapa"
+            className="p-2.5 rounded-xl bg-brand-50/80 hover:bg-brand-100 text-brand-600 btn-tactile cursor-pointer flex items-center justify-center transition-colors"
+            title={t('nav.fullMap') || 'Mapa en Pantalla Completa'}
+            aria-label="Mapa en Pantalla Completa"
+          >
+            <Map size={18} />
+          </Link>
+
           {/* Notification Bell */}
           <NotificationBell />
 
@@ -193,15 +203,26 @@ export default function Navigation() {
                   { href: "/#inicio", label: t('nav.home') },
                   { href: "/#lugares", label: t('nav.places') },
                   { href: "/#mapa", label: t('nav.map') },
+                  { href: "/mapa", label: t('nav.fullMap') || 'Mapa en Pantalla Completa', isRouter: true },
                 ].map(item => (
                   <li key={item.href}>
-                    <a
-                      href={item.href}
-                      onClick={() => setMobileOpen(false)}
-                      className="block py-3 px-4 rounded-xl text-gray-800 hover:bg-brand-50 hover:text-brand-600 font-bold text-sm transition-colors"
-                    >
-                      {item.label}
-                    </a>
+                    {item.isRouter ? (
+                      <Link
+                        to={item.href}
+                        onClick={() => setMobileOpen(false)}
+                        className="block py-3 px-4 rounded-xl text-brand-600 bg-brand-50/60 font-bold text-sm transition-colors"
+                      >
+                        {item.label}
+                      </Link>
+                    ) : (
+                      <a
+                        href={item.href}
+                        onClick={() => setMobileOpen(false)}
+                        className="block py-3 px-4 rounded-xl text-gray-800 hover:bg-brand-50 hover:text-brand-600 font-bold text-sm transition-colors"
+                      >
+                        {item.label}
+                      </a>
+                    )}
                   </li>
                 ))}
               </ul>
