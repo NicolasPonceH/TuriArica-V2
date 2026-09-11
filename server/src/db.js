@@ -79,7 +79,29 @@ db.exec(`
     priority INTEGER DEFAULT 1,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP
   );
+
+  CREATE TABLE IF NOT EXISTS transit_lines (
+    id TEXT PRIMARY KEY,
+    nombre TEXT NOT NULL,
+    tipo TEXT DEFAULT 'micro',
+    numero TEXT NOT NULL,
+    color TEXT DEFAULT '#0284c7',
+    tarifa TEXT DEFAULT '$500',
+    horario TEXT DEFAULT '06:30 - 22:30',
+    frecuencia TEXT DEFAULT 'Cada 10 min',
+    paradas_json TEXT,
+    geometry_json TEXT,
+    is_active INTEGER DEFAULT 1,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+  );
 `);
+
+// Migraciones de columnas adicionales
+try { db.exec('ALTER TABLE events ADD COLUMN place_id TEXT;'); } catch (e) {}
+try { db.exec('ALTER TABLE events ADD COLUMN place_name TEXT;'); } catch (e) {}
+try { db.exec('ALTER TABLE events ADD COLUMN discount_badge TEXT;'); } catch (e) {}
+try { db.exec('ALTER TABLE transit_lines ADD COLUMN foto TEXT;'); } catch (e) {}
 
 // 2. Initial Seeding Function
 export function seedDatabase(adminUser = 'admin', adminPass = 'turiarica2026') {
@@ -236,6 +258,82 @@ export function seedDatabase(adminUser = 'admin', adminPass = 'turiarica2026') {
       );
     }
     console.log(`[DB] ${initialPlaces.length} lugares iniciales de Arica insertados en la base de datos.`);
+  }
+
+  // D. Transit Lines Seed
+  const transitCount = db.prepare('SELECT COUNT(*) as count FROM transit_lines').get().count;
+  if (transitCount === 0) {
+    const insertTransit = db.prepare(`
+      INSERT INTO transit_lines (id, nombre, tipo, numero, color, tarifa, horario, frecuencia, paradas_json, geometry_json, is_active)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1)
+    `);
+
+    const initialTransit = [
+      {
+        id: "linea-12-micro",
+        nombre: "Línea 12 - Costanera Norte / Chinchorro",
+        tipo: "micro",
+        numero: "12",
+        color: "#0284c7",
+        tarifa: "$500",
+        horario: "06:30 - 22:30",
+        frecuencia: "Cada 8 min",
+        paradas: [
+          { id: "p12_1", nombre: "Terminal Agropecuario Asoagro", lat: -18.5028, lng: -70.2925 },
+          { id: "p12_2", nombre: "Av. Santa María / 18 de Septiembre", lat: -18.4895, lng: -70.3060 },
+          { id: "p12_3", nombre: "Centro Cívico / 21 de Mayo", lat: -18.4785, lng: -70.3180 },
+          { id: "p12_4", nombre: "Playa Chinchorro / Raúl Pey", lat: -18.4550, lng: -70.3015 }
+        ]
+      },
+      {
+        id: "linea-7-micro",
+        nombre: "Línea 7 - Cerro La Cruz / El Laucho",
+        tipo: "micro",
+        numero: "7",
+        color: "#10b981",
+        tarifa: "$500",
+        horario: "06:45 - 22:00",
+        frecuencia: "Cada 12 min",
+        paradas: [
+          { id: "p7_1", nombre: "Cerro La Cruz / Altos de Arica", lat: -18.4720, lng: -70.3020 },
+          { id: "p7_2", nombre: "Plaza Colón / Catedral San Marcos", lat: -18.4783, lng: -70.3200 },
+          { id: "p7_3", nombre: "Playa El Laucho", lat: -18.4879, lng: -70.3267 }
+        ]
+      },
+      {
+        id: "linea-1-colectivo",
+        nombre: "Línea 1 Colectivo - Terminal Asoagro / Centro",
+        tipo: "colectivo",
+        numero: "1",
+        color: "#f59e0b",
+        tarifa: "$800",
+        horario: "06:00 - 23:30",
+        frecuencia: "Cada 5 min",
+        paradas: [
+          { id: "pc1_1", nombre: "Terminal Agropecuario ASOAGRO", lat: -18.5032, lng: -70.2920 },
+          { id: "pc1_2", nombre: "Rotonda Manuel Castillo", lat: -18.4890, lng: -70.2990 },
+          { id: "pc1_3", nombre: "Parque Vicuña Mackenna / Morro", lat: -18.4795, lng: -70.3205 }
+        ]
+      }
+    ];
+
+    for (const line of initialTransit) {
+      const coords = line.paradas.map(p => [p.lng, p.lat]);
+      const geom = { type: "LineString", coordinates: coords };
+      insertTransit.run(
+        line.id,
+        line.nombre,
+        line.tipo,
+        line.numero,
+        line.color,
+        line.tarifa,
+        line.horario,
+        line.frecuencia,
+        JSON.stringify(line.paradas),
+        JSON.stringify(geom)
+      );
+    }
+    console.log(`[DB] ${initialTransit.length} líneas de transporte público iniciales insertadas.`);
   }
 }
 
@@ -406,6 +504,9 @@ export const dbOperations = {
       bannerUrl: e.banner_url,
       actionUrl: e.action_url,
       priority: e.priority,
+      placeId: e.place_id,
+      placeName: e.place_name,
+      discountBadge: e.discount_badge,
       createdAt: e.created_at
     }));
   },
@@ -423,14 +524,17 @@ export const dbOperations = {
       bannerUrl: e.banner_url,
       actionUrl: e.action_url,
       priority: e.priority,
+      placeId: e.place_id,
+      placeName: e.place_name,
+      discountBadge: e.discount_badge,
       createdAt: e.created_at
     }));
   },
 
   createEvent(data) {
     const stmt = db.prepare(`
-      INSERT INTO events (title, message, type, start_date, end_date, is_active, is_popup, banner_url, action_url, priority)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      INSERT INTO events (title, message, type, start_date, end_date, is_active, is_popup, banner_url, action_url, priority, place_id, place_name, discount_badge)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `);
 
     const res = stmt.run(
@@ -443,7 +547,10 @@ export const dbOperations = {
       data.isPopup !== undefined ? (data.isPopup ? 1 : 0) : 0,
       data.bannerUrl || '',
       data.actionUrl || '',
-      data.priority || 1
+      data.priority || 1,
+      data.placeId || data.place_id || null,
+      data.placeName || data.place_name || null,
+      data.discountBadge || data.discount_badge || null
     );
 
     const inserted = db.prepare('SELECT * FROM events WHERE id = ?').get(res.lastInsertRowid);
@@ -459,6 +566,9 @@ export const dbOperations = {
       bannerUrl: inserted.banner_url,
       actionUrl: inserted.action_url,
       priority: inserted.priority,
+      placeId: inserted.place_id,
+      placeName: inserted.place_name,
+      discountBadge: inserted.discount_badge,
       createdAt: inserted.created_at
     };
   },
@@ -467,7 +577,8 @@ export const dbOperations = {
     const stmt = db.prepare(`
       UPDATE events SET
         title = ?, message = ?, type = ?, start_date = ?, end_date = ?,
-        is_active = ?, is_popup = ?, banner_url = ?, action_url = ?, priority = ?
+        is_active = ?, is_popup = ?, banner_url = ?, action_url = ?, priority = ?,
+        place_id = ?, place_name = ?, discount_badge = ?
       WHERE id = ?
     `);
 
@@ -482,6 +593,9 @@ export const dbOperations = {
       data.bannerUrl || '',
       data.actionUrl || '',
       data.priority || 1,
+      data.placeId || data.place_id || null,
+      data.placeName || data.place_name || null,
+      data.discountBadge || data.discount_badge || null,
       id
     );
 
@@ -499,12 +613,103 @@ export const dbOperations = {
       bannerUrl: updated.banner_url,
       actionUrl: updated.action_url,
       priority: updated.priority,
+      placeId: updated.place_id,
+      placeName: updated.place_name,
+      discountBadge: updated.discount_badge,
       createdAt: updated.created_at
     };
   },
 
   deleteEvent(id) {
     return db.prepare('DELETE FROM events WHERE id = ?').run(id);
+  },
+
+  // --- Transit Lines Ops ---
+  getAllTransit() {
+    return db.prepare('SELECT * FROM transit_lines WHERE is_active = 1 ORDER BY tipo ASC, CAST(numero AS INTEGER) ASC, nombre ASC').all().map(t => ({
+      type: "Feature",
+      properties: {
+        id: t.id,
+        nombre: t.nombre,
+        tipo: t.tipo,
+        numero: t.numero,
+        color: t.color,
+        tarifa: t.tarifa,
+        horario: t.horario,
+        frecuencia: t.frecuencia,
+        foto: t.foto || '',
+        paradas: JSON.parse(t.paradas_json || '[]')
+      },
+      geometry: JSON.parse(t.geometry_json || '{"type":"LineString","coordinates":[]}')
+    }));
+  },
+
+  getTransitById(id) {
+    const t = db.prepare('SELECT * FROM transit_lines WHERE id = ?').get(id);
+    if (!t) return null;
+    return {
+      type: "Feature",
+      properties: {
+        id: t.id,
+        nombre: t.nombre,
+        tipo: t.tipo,
+        numero: t.numero,
+        color: t.color,
+        tarifa: t.tarifa,
+        horario: t.horario,
+        frecuencia: t.frecuencia,
+        foto: t.foto || '',
+        paradas: JSON.parse(t.paradas_json || '[]')
+      },
+      geometry: JSON.parse(t.geometry_json || '{"type":"LineString","coordinates":[]}')
+    };
+  },
+
+  upsertTransit(line) {
+    const id = line.properties?.id || line.id || `linea-${Date.now()}`;
+    const props = line.properties || line;
+    const geom = line.geometry || {
+      type: 'LineString',
+      coordinates: (props.paradas || []).map(p => [p.lng, p.lat])
+    };
+
+    const stmt = db.prepare(`
+      INSERT INTO transit_lines (id, nombre, tipo, numero, color, tarifa, horario, frecuencia, foto, paradas_json, geometry_json, is_active, updated_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, CURRENT_TIMESTAMP)
+      ON CONFLICT(id) DO UPDATE SET
+        nombre = excluded.nombre,
+        tipo = excluded.tipo,
+        numero = excluded.numero,
+        color = excluded.color,
+        tarifa = excluded.tarifa,
+        horario = excluded.horario,
+        frecuencia = excluded.frecuencia,
+        foto = excluded.foto,
+        paradas_json = excluded.paradas_json,
+        geometry_json = excluded.geometry_json,
+        is_active = 1,
+        updated_at = CURRENT_TIMESTAMP
+    `);
+
+    stmt.run(
+      id,
+      props.nombre || `Línea ${props.numero || '1'}`,
+      props.tipo || 'micro',
+      String(props.numero || '1'),
+      props.color || '#0284c7',
+      props.tarifa || '$500',
+      props.horario || '06:30 - 22:30',
+      props.frecuencia || 'Cada 10 min',
+      props.foto || '',
+      JSON.stringify(props.paradas || []),
+      JSON.stringify(geom)
+    );
+
+    return this.getTransitById(id);
+  },
+
+  deleteTransit(id) {
+    return db.prepare('DELETE FROM transit_lines WHERE id = ?').run(id);
   }
 };
 
