@@ -28,9 +28,9 @@ export default function CategoryFilter({ activeCategory, setActiveCategory, acti
                 setActiveType(type.id);
                 setActiveCategory('Todos');
               }}
-              className={`inline-flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-bold transition-all cursor-pointer ${
+              className={`inline-flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-bold btn-tactile cursor-pointer ${
                 activeType === type.id
-                  ? 'bg-brand-500 text-white shadow-lg shadow-sky-500/25 scale-102'
+                  ? 'bg-brand-500 text-white shadow-lg shadow-sky-500/25 scale-[1.02]'
                   : 'glass-pill text-slate-700 hover:bg-white/90 hover:text-slate-900 shadow-2xs hover:shadow-xs'
               }`}
             >
@@ -45,9 +45,9 @@ export default function CategoryFilter({ activeCategory, setActiveCategory, acti
       <div className="flex flex-wrap gap-2">
         <button
           onClick={() => setActiveCategory('Todos')}
-          className={`px-5 py-2 rounded-full font-bold text-sm transition-all cursor-pointer ${
+          className={`px-5 py-2 rounded-full font-bold text-sm btn-tactile cursor-pointer ${
             activeCategory === 'Todos'
-              ? 'bg-accent-500 text-white shadow-lg shadow-orange-500/25 scale-102'
+              ? 'bg-accent-500 text-white shadow-lg shadow-orange-500/25 scale-[1.02]'
               : 'glass-pill text-slate-700 hover:bg-white/90 hover:text-slate-900 shadow-2xs hover:shadow-xs'
           }`}
         >
@@ -60,9 +60,9 @@ export default function CategoryFilter({ activeCategory, setActiveCategory, acti
             <button
               key={cat.id}
               onClick={() => setActiveCategory(cat.id)}
-              className={`inline-flex items-center gap-1.5 px-5 py-2 rounded-full font-bold text-sm transition-all cursor-pointer ${
+              className={`inline-flex items-center gap-1.5 px-5 py-2 rounded-full font-bold text-sm btn-tactile cursor-pointer ${
                 activeCategory === cat.id
-                  ? 'text-white shadow-lg scale-102'
+                  ? 'text-white shadow-lg scale-[1.02]'
                   : 'glass-pill text-slate-700 hover:bg-white/90 hover:text-slate-900 shadow-2xs hover:shadow-xs'
               }`}
               style={activeCategory === cat.id ? { backgroundColor: cat.color } : {}}

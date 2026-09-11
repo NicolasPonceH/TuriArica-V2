@@ -48,25 +48,31 @@ export default function Hero3D() {
       {/* Content Overlay */}
       <div className="relative z-10 text-center px-6 max-w-4xl mx-auto mt-16">
         <motion.div
-          initial={{ opacity: 0, y: 30 }}
+          initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.8, delay: 0.2 }}
+          transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1], delay: 0.15 }}
         >
-          <span className="inline-block py-1 px-4 rounded-full bg-accent-500/90 text-white text-sm font-bold mb-6 backdrop-blur-md shadow-[0_0_15px_rgba(249,115,22,0.4)] border border-accent-400">
+          <span className="inline-block py-1.5 px-4 rounded-full bg-accent-500/95 text-white text-xs sm:text-sm font-black mb-6 backdrop-blur-md shadow-[0_0_20px_rgba(249,115,22,0.45)] border border-accent-400/80 tracking-wide">
             Descubre la Eterna Primavera 🌸
           </span>
-          <h1 className="text-5xl md:text-7xl font-extrabold tracking-tight mb-6 text-white drop-shadow-[0_4px_4px_rgba(0,0,0,0.5)]">
-            Arica, de forma <span className="text-brand-400 drop-shadow-md">inclusiva</span>
+          <h1 className="text-5xl md:text-7xl font-black tracking-tight mb-6 text-white drop-shadow-[0_4px_6px_rgba(0,0,0,0.6)]">
+            Arica, de forma <span className="text-brand-300 drop-shadow-md">inclusiva</span>
           </h1>
-          <p className="text-lg md:text-xl text-gray-100 mb-10 max-w-2xl mx-auto font-medium drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)]">
-            Explora los atractivos turísticos de la ciudad con un mapa interactivo diseñado para todos. Accesibilidad total y sin barreras.
+          <p className="text-lg md:text-xl text-gray-100 mb-10 max-w-2xl mx-auto font-medium drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)] leading-relaxed">
+            Explora los atractivos turísticos de la ciudad con un mapa interactivo diseñado para todos. Accesibilidad universal y sin barreras.
           </p>
           
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-            <a href="#mapa" className="px-8 py-4 rounded-full bg-accent-500 hover:bg-accent-600 text-white font-bold transition-all shadow-[0_4px_20px_rgba(249,115,22,0.6)] hover:shadow-[0_4px_25px_rgba(249,115,22,0.8)] border border-transparent hover:scale-105">
+            <a
+              href="#mapa"
+              className="px-8 py-4 rounded-full bg-accent-500 hover:bg-accent-600 text-white font-black text-sm tracking-wide transition-all duration-150 ease-out shadow-[0_4px_20px_rgba(249,115,22,0.5)] hover:shadow-[0_4px_25px_rgba(249,115,22,0.7)] hover:scale-[1.03] active:scale-[0.97] btn-tactile cursor-pointer"
+            >
               Explorar el Mapa
             </a>
-            <a href="#lugares" className="px-8 py-4 rounded-full bg-white/10 hover:bg-white/20 text-white font-bold transition-all shadow-md backdrop-blur-md border border-white/30 hover:scale-105">
+            <a
+              href="#lugares"
+              className="px-8 py-4 rounded-full bg-white/15 hover:bg-white/25 text-white font-bold text-sm tracking-wide transition-all duration-150 ease-out shadow-lg backdrop-blur-md border border-white/40 hover:scale-[1.03] active:scale-[0.97] btn-tactile cursor-pointer"
+            >
               Ver Lugares
             </a>
           </div>
