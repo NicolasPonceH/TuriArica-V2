@@ -28,10 +28,10 @@ export default function CategoryFilter({ activeCategory, setActiveCategory, acti
                 setActiveType(type.id);
                 setActiveCategory('Todos');
               }}
-              className={`inline-flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-bold transition-all ${
+              className={`inline-flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-bold transition-all cursor-pointer ${
                 activeType === type.id
-                  ? 'bg-brand-500 text-white shadow-[0_0_15px_rgba(14,165,233,0.4)]'
-                  : 'bg-white border border-gray-200 text-gray-600 hover:bg-gray-50'
+                  ? 'bg-brand-500 text-white shadow-lg shadow-sky-500/25 scale-102'
+                  : 'glass-pill text-slate-700 hover:bg-white/90 hover:text-slate-900 shadow-2xs hover:shadow-xs'
               }`}
             >
               <Icon size={16} />
@@ -45,10 +45,10 @@ export default function CategoryFilter({ activeCategory, setActiveCategory, acti
       <div className="flex flex-wrap gap-2">
         <button
           onClick={() => setActiveCategory('Todos')}
-          className={`px-5 py-2 rounded-full font-medium text-sm transition-all ${
+          className={`px-5 py-2 rounded-full font-bold text-sm transition-all cursor-pointer ${
             activeCategory === 'Todos'
-              ? 'bg-accent-500 text-white shadow-[0_0_15px_rgba(249,115,22,0.4)]'
-              : 'bg-white border border-gray-200 text-gray-600 hover:bg-gray-50'
+              ? 'bg-accent-500 text-white shadow-lg shadow-orange-500/25 scale-102'
+              : 'glass-pill text-slate-700 hover:bg-white/90 hover:text-slate-900 shadow-2xs hover:shadow-xs'
           }`}
         >
           {t('cat.all')}
@@ -60,10 +60,10 @@ export default function CategoryFilter({ activeCategory, setActiveCategory, acti
             <button
               key={cat.id}
               onClick={() => setActiveCategory(cat.id)}
-              className={`inline-flex items-center gap-1.5 px-5 py-2 rounded-full font-medium text-sm transition-all ${
+              className={`inline-flex items-center gap-1.5 px-5 py-2 rounded-full font-bold text-sm transition-all cursor-pointer ${
                 activeCategory === cat.id
-                  ? 'text-white shadow-lg'
-                  : 'bg-white border border-gray-200 text-gray-600 hover:bg-gray-50'
+                  ? 'text-white shadow-lg scale-102'
+                  : 'glass-pill text-slate-700 hover:bg-white/90 hover:text-slate-900 shadow-2xs hover:shadow-xs'
               }`}
               style={activeCategory === cat.id ? { backgroundColor: cat.color } : {}}
             >

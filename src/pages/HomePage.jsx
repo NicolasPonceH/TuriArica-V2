@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Navigation from '../components/layout/Navigation';
 import Footer from '../components/layout/Footer';
 import Hero3D from '../components/home/Hero3D';
@@ -17,8 +17,75 @@ import { usePlaces } from '../contexts/PlacesContext';
 import { useLanguage } from '../contexts/LanguageContext';
 import { motion, AnimatePresence } from 'framer-motion';
 import { calculateHaversine } from '../utils/haversine';
-import { API, FALLBACK_LOCATION } from '../utils/constants';
+import { API, FALLBACK_LOCATION, SERVER_URL } from '../utils/constants';
 import { Sparkles, Compass } from 'lucide-react';
+
+const CLIMATE_THEMES = {
+  clear: {
+    bgClass: 'bg-[#fdfbf7]',
+    textColor: 'text-slate-800',
+    titleColor: 'text-slate-900',
+    ambientGradients: (
+      <>
+        {/* Sol radiante de la Eterna Primavera (Arica) */}
+        <div className="absolute -top-32 right-0 w-[650px] h-[650px] bg-gradient-to-bl from-amber-300/25 via-orange-200/15 to-transparent rounded-full blur-3xl pointer-events-none transition-all duration-1000" />
+        <div className="absolute top-96 -left-20 w-[500px] h-[500px] bg-gradient-to-tr from-sky-300/20 via-cyan-200/10 to-transparent rounded-full blur-3xl pointer-events-none transition-all duration-1000" />
+        <div className="absolute top-[1800px] right-10 w-[600px] h-[600px] bg-gradient-to-bl from-amber-200/20 via-sky-100/15 to-transparent rounded-full blur-3xl pointer-events-none transition-all duration-1000" />
+      </>
+    )
+  },
+  cloudy: {
+    bgClass: 'bg-[#f2f5f9]',
+    textColor: 'text-slate-800',
+    titleColor: 'text-slate-900',
+    ambientGradients: (
+      <>
+        {/* Camanchaca y nubosidad costera del Pacífico */}
+        <div className="absolute -top-20 inset-x-0 h-[700px] bg-gradient-to-b from-slate-300/35 via-slate-200/25 to-transparent pointer-events-none transition-all duration-1000" />
+        <div className="absolute top-40 right-10 w-[600px] h-[600px] bg-gradient-to-bl from-slate-300/30 via-sky-200/20 to-transparent rounded-full blur-3xl pointer-events-none transition-all duration-1000" />
+        <div className="absolute top-[1700px] left-0 w-[550px] h-[550px] bg-gradient-to-tr from-slate-200/40 via-blue-100/20 to-transparent rounded-full blur-3xl pointer-events-none transition-all duration-1000" />
+      </>
+    )
+  },
+  partlyCloudy: {
+    bgClass: 'bg-[#f7f9fc]',
+    textColor: 'text-slate-800',
+    titleColor: 'text-slate-900',
+    ambientGradients: (
+      <>
+        {/* Nubes dispersas y sol costero */}
+        <div className="absolute -top-20 right-10 w-[600px] h-[600px] bg-gradient-to-bl from-sky-200/25 via-amber-100/20 to-transparent rounded-full blur-3xl pointer-events-none transition-all duration-1000" />
+        <div className="absolute top-96 left-0 w-[500px] h-[500px] bg-gradient-to-tr from-cyan-100/30 via-slate-100/20 to-transparent rounded-full blur-3xl pointer-events-none transition-all duration-1000" />
+      </>
+    )
+  },
+  sunset: {
+    bgClass: 'bg-[#fff7f0]',
+    textColor: 'text-slate-800',
+    titleColor: 'text-slate-900',
+    ambientGradients: (
+      <>
+        {/* Atardecer sobre el Morro y el mar */}
+        <div className="absolute -top-20 right-0 w-[700px] h-[700px] bg-gradient-to-bl from-orange-400/30 via-rose-300/20 to-transparent rounded-full blur-3xl pointer-events-none transition-all duration-1000" />
+        <div className="absolute top-72 left-0 w-[600px] h-[600px] bg-gradient-to-tr from-amber-300/25 via-pink-200/15 to-transparent rounded-full blur-3xl pointer-events-none transition-all duration-1000" />
+        <div className="absolute top-[1600px] right-10 w-[600px] h-[600px] bg-gradient-to-bl from-rose-300/20 via-orange-200/15 to-transparent rounded-full blur-3xl pointer-events-none transition-all duration-1000" />
+      </>
+    )
+  },
+  night: {
+    bgClass: 'bg-[#0a1124]',
+    textColor: 'text-slate-100',
+    titleColor: 'text-white',
+    ambientGradients: (
+      <>
+        {/* Noche estrellada sobre la bahía */}
+        <div className="absolute -top-20 right-10 w-[650px] h-[650px] bg-gradient-to-bl from-indigo-500/25 via-sky-600/15 to-transparent rounded-full blur-3xl pointer-events-none transition-all duration-1000" />
+        <div className="absolute top-80 left-0 w-[550px] h-[550px] bg-gradient-to-tr from-blue-900/35 via-indigo-950/20 to-transparent rounded-full blur-3xl pointer-events-none transition-all duration-1000" />
+        <div className="absolute top-[1700px] right-0 w-[600px] h-[600px] bg-gradient-to-bl from-violet-900/25 via-sky-950/20 to-transparent rounded-full blur-3xl pointer-events-none transition-all duration-1000" />
+      </>
+    )
+  }
+};
 
 export default function HomePage() {
   const { places, getPlacesByCategory, getPlacesByType } = usePlaces();
@@ -35,6 +102,24 @@ export default function HomePage() {
   const [showAssistant, setShowAssistant] = useState(false);
   const [showPlanner, setShowPlanner] = useState(false);
   const [currentAudio, setCurrentAudio] = useState(null);
+
+  // Clima en tiempo real y ambiente dinámico según RedMeteo
+  const [liveWeather, setLiveWeather] = useState(null);
+  const [previewCondition, setPreviewCondition] = useState(null);
+
+  useEffect(() => {
+    fetch(`${SERVER_URL}/api/weather/live`)
+      .then(res => res.json())
+      .then(data => {
+        if (data && data.current) {
+          setLiveWeather(data);
+        }
+      })
+      .catch(() => {});
+  }, []);
+
+  const activeCondition = previewCondition || liveWeather?.current?.conditionType || 'clear';
+  const climateTheme = CLIMATE_THEMES[activeCondition] || CLIMATE_THEMES.clear;
 
   // Filter places by type first, then by category
   const filteredByType = activeType === 'todos' ? places : getPlacesByType(activeType);
@@ -135,75 +220,98 @@ export default function HomePage() {
   };
 
   return (
-    <div className="min-h-screen text-gray-800 font-sans selection:bg-brand-500/30 selection:text-brand-600 transition-colors duration-300">
-      <Navigation />
-      <Hero3D />
+    <div className={`min-h-screen ${climateTheme.bgClass} ${climateTheme.textColor} font-sans selection:bg-brand-500/30 selection:text-brand-600 transition-colors duration-1000 relative overflow-x-hidden`}>
+      {/* Fondo ambiental dinámico según el clima de Arica (Soleado, Nublado, Atardecer, Noche) */}
+      <div className="fixed inset-0 pointer-events-none z-0 overflow-hidden">
+        {climateTheme.ambientGradients}
+      </div>
 
-      <AccessibilityToolbar
-        onAssistantClick={() => setShowAssistant(true)}
-        onReadPageClick={handleReadPage}
-      />
+      <div className="relative z-10">
+        <Navigation />
+        <Hero3D />
 
-      <PWAInstallPrompt />
+        <AccessibilityToolbar
+          onAssistantClick={() => setShowAssistant(true)}
+          onReadPageClick={handleReadPage}
+        />
 
-      {showAssistant && <AssistantModal onClose={() => setShowAssistant(false)} />}
+        <PWAInstallPrompt />
 
-      {/* Travel Hub Section (Itinerary Planner + Live Beach Conditions) */}
-      <section className="max-w-6xl mx-auto px-4 sm:px-6 pt-12 sm:pt-16 pb-4 space-y-6">
-        {/* Smart Itinerary Planner CTA Banner */}
-        <div className="bg-gradient-to-r from-sky-50 via-white to-amber-50/60 rounded-3xl p-6 sm:p-7 shadow-xl shadow-sky-950/5 border border-sky-100 flex flex-col sm:flex-row items-center justify-between gap-5 relative overflow-hidden">
-          <div className="absolute top-0 right-0 w-80 h-full bg-gradient-to-l from-amber-100/30 via-sky-100/20 to-transparent pointer-events-none" />
+        {showAssistant && <AssistantModal onClose={() => setShowAssistant(false)} />}
 
-          <div className="flex items-center gap-4 text-center sm:text-left z-10">
-            <div className="w-13 h-13 rounded-2xl bg-gradient-to-br from-brand-500 to-sky-600 flex items-center justify-center shrink-0 shadow-lg shadow-brand-500/25 text-white">
-              <Compass size={26} />
-            </div>
-            <div>
-              <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-sky-100/80 text-brand-600 text-[11px] font-bold uppercase tracking-wider mb-1.5 border border-sky-200">
-                <Sparkles size={12} className="text-accent-500" />
-                <span>Asistente de Viaje Inteligente</span>
+        {/* Travel Hub Section (Itinerary Planner + Live Beach Conditions) */}
+        <section className="max-w-6xl mx-auto px-4 sm:px-6 pt-12 sm:pt-16 pb-4 space-y-6">
+          {/* Smart Itinerary Planner CTA Banner */}
+          <div className="glass-card rounded-3xl p-6 sm:p-7 shadow-xl shadow-sky-950/5 border border-white/80 flex flex-col sm:flex-row items-center justify-between gap-5 relative overflow-hidden backdrop-blur-xl">
+            <div className="absolute top-0 right-0 w-80 h-full bg-gradient-to-l from-amber-100/30 via-sky-100/20 to-transparent pointer-events-none" />
+
+            <div className="flex items-center gap-4 text-center sm:text-left z-10">
+              <div className="w-13 h-13 rounded-2xl bg-gradient-to-br from-brand-500 to-sky-600 flex items-center justify-center shrink-0 shadow-lg shadow-brand-500/25 text-white">
+                <Compass size={26} />
               </div>
-              <h3 className="text-xl sm:text-2xl font-black text-slate-900 leading-tight">
-                ¿Planeando tu viaje a la Eterna Primavera?
-              </h3>
-              <p className="text-xs sm:text-sm text-slate-600 mt-1 font-medium max-w-xl">
-                Genera un itinerario inteligente personalizado hora a hora según tus días y preferencias.
-              </p>
+              <div>
+                <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-sky-100/80 text-brand-600 text-[11px] font-bold uppercase tracking-wider mb-1.5 border border-sky-200">
+                  <Sparkles size={12} className="text-accent-500" />
+                  <span>Asistente de Viaje Inteligente</span>
+                </div>
+                <h3 className="text-xl sm:text-2xl font-black text-slate-900 leading-tight">
+                  ¿Planeando tu viaje a la Eterna Primavera?
+                </h3>
+                <p className="text-xs sm:text-sm text-slate-600 mt-1 font-medium max-w-xl">
+                  Genera un itinerario inteligente personalizado hora a hora según tus días y preferencias.
+                </p>
+              </div>
             </div>
+
+            <button
+              onClick={() => setShowPlanner(true)}
+              className="px-6 py-3.5 rounded-xl bg-gradient-to-r from-accent-500 to-amber-500 hover:from-accent-600 hover:to-amber-600 text-white font-black text-xs sm:text-sm shadow-lg shadow-orange-500/25 transition-all hover:scale-105 active:scale-95 shrink-0 flex items-center gap-2 z-10 cursor-pointer"
+            >
+              <Sparkles size={16} />
+              <span>Armar Mi Itinerario</span>
+            </button>
           </div>
 
-          <button
-            onClick={() => setShowPlanner(true)}
-            className="px-6 py-3.5 rounded-xl bg-gradient-to-r from-accent-500 to-amber-500 hover:from-accent-600 hover:to-amber-600 text-white font-black text-xs sm:text-sm shadow-lg shadow-orange-500/25 transition-all hover:scale-105 active:scale-95 shrink-0 flex items-center gap-2 z-10 cursor-pointer"
+          {/* Coastal Surf & Beaches Live Widget */}
+          <CoastalSurfWidget
+            weatherData={liveWeather ? {
+              temp: liveWeather.current.temp,
+              condition: previewCondition ? (previewCondition === 'clear' ? 'Soleado' : previewCondition === 'cloudy' ? 'Nublado' : previewCondition === 'sunset' ? 'Atardecer' : 'Noche Despejada') : liveWeather.current.condition,
+              conditionType: activeCondition,
+              conditionDesc: previewCondition ? (previewCondition === 'clear' ? 'Sol radiante de Eterna Primavera' : previewCondition === 'cloudy' ? 'Cielo cubierto con nubosidad costera' : previewCondition === 'sunset' ? 'Atardecer dorado frente al Pacífico' : 'Noche serena bajo el cielo del norte') : liveWeather.current.conditionDesc,
+              humidity: liveWeather.current.humidity,
+              windSpeedKmH: liveWeather.current.windSpeedKmH,
+              windDirection: liveWeather.current.windDirection,
+              uvIndex: previewCondition === 'night' ? 0 : previewCondition === 'cloudy' ? 1 : liveWeather.current.uvIndex,
+              stationName: liveWeather.station?.name || 'Arica - Capitanía de Puerto',
+              lastUpdate: liveWeather.station?.lastUpdate
+                ? new Date(liveWeather.station.lastUpdate).toLocaleTimeString('es-CL', { hour: '2-digit', minute: '2-digit' })
+                : 'En vivo'
+            } : null}
+            activeCondition={activeCondition}
+            previewCondition={previewCondition}
+            onSetPreviewCondition={setPreviewCondition}
+            onSelectBeach={(beachName) => {
+              const match = places.find(p => p.name.toLowerCase().includes(beachName.toLowerCase()));
+              if (match) {
+                handleRouteClick(match);
+              } else {
+                document.getElementById('mapa')?.scrollIntoView({ behavior: 'smooth' });
+              }
+            }}
+          />
+        </section>
+
+        {/* Places Section */}
+        <main className="max-w-6xl mx-auto px-6 py-12 sm:py-20" id="lugares">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            className="mb-4"
           >
-            <Sparkles size={16} />
-            <span>Armar Mi Itinerario</span>
-          </button>
-        </div>
-
-        {/* Coastal Surf & Beaches Live Widget */}
-        <CoastalSurfWidget
-          onSelectBeach={(beachName) => {
-            const match = places.find(p => p.name.toLowerCase().includes(beachName.toLowerCase()));
-            if (match) {
-              handleRouteClick(match);
-            } else {
-              document.getElementById('mapa')?.scrollIntoView({ behavior: 'smooth' });
-            }
-          }}
-        />
-      </section>
-
-      {/* Places Section */}
-      <main className="max-w-6xl mx-auto px-6 py-12 sm:py-20" id="lugares">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          className="mb-4"
-        >
-          <h2 className="text-3xl md:text-5xl font-bold mb-8 text-gray-900">{t('places.title')}</h2>
-        </motion.div>
+            <h2 className={`text-3xl md:text-5xl font-bold mb-8 ${climateTheme.titleColor}`}>{t('places.title')}</h2>
+          </motion.div>
 
         <CategoryFilter
           activeCategory={activeCategory}
@@ -288,6 +396,7 @@ export default function HomePage() {
 
       {/* Featured Event Popup Modal */}
       <EventPopupModal />
+      </div>
     </div>
   );
 }

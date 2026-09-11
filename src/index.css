@@ -1,29 +1,66 @@
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;1,400;1,600;1,700&display=swap');
 @import "tailwindcss";
 
 @theme {
-  --font-sans: "Inter", "Outfit", system-ui, sans-serif;
+  --font-sans: "Plus Jakarta Sans", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   
-  --color-brand-500: #0ea5e9; /* Sky Blue (Océano) */
+  /* Paleta Oficial Arica Inclusiva & Costera */
+  --color-primary: #9d4300;
+  --color-primary-container: #f97316;
+  --color-on-primary: #ffffff;
+  --color-on-primary-container: #582200;
+  --color-inverse-primary: #ffb690;
+  
+  --color-secondary: #006591;
+  --color-secondary-container: #39b8fd;
+  --color-on-secondary: #ffffff;
+  --color-on-secondary-container: #004666;
+  
+  --color-tertiary: #006c49;
+  --color-tertiary-container: #00b07a;
+  --color-on-tertiary: #ffffff;
+  --color-on-tertiary-container: #003b26;
+  
+  /* Tokens de Compatibilidad TuriArica */
+  --color-brand-500: #0ea5e9; /* Pacific Sky / Marine Blue */
   --color-brand-600: #0284c7;
   
-  --color-accent-500: #f97316; /* Orange (Atardecer/Primavera) */
+  --color-accent-500: #f97316; /* Sol & Morro Orange */
   --color-accent-600: #ea580c;
   
-  --color-surface-900: #fdfbf7; /* Light Sand / Blanco hueso */
-  --color-surface-800: #ffffff; /* Blanco puro */
-  --color-surface-700: #f1f5f9; /* Slate 100 */
+  --color-surface: #f8f9ff;
+  --color-surface-dim: #cbdbf5;
+  --color-surface-bright: #f8f9ff;
+  --color-surface-container-lowest: #ffffff;
+  --color-surface-container-low: #eff4ff;
+  --color-surface-container: #e5eeff;
+  --color-surface-container-high: #dce9ff;
+  --color-surface-container-highest: #d3e4fe;
   
-  --color-text-primary: #1e293b; /* Slate 800 */
-  --color-text-secondary: #475569; /* Slate 600 */
+  --color-surface-900: #f8f9ff;
+  --color-surface-800: #ffffff;
+  --color-surface-700: #eff4ff;
+  
+  --color-on-surface: #0b1c30;
+  --color-on-surface-variant: #584237;
+  --color-inverse-surface: #213145;
+  --color-inverse-on-surface: #eaf1ff;
+  
+  --color-outline: #8c7164;
+  --color-outline-variant: #e0c0b1;
+  
+  --color-text-primary: #0b1c30;
+  --color-text-secondary: #475569;
 }
 
 @layer base {
   :root {
     font-family: var(--font-sans);
-    background-color: var(--color-surface-900);
-    color: var(--color-text-primary);
+    background-color: var(--color-surface);
+    color: var(--color-on-surface);
     scroll-behavior: smooth;
-    transition: background-color 0.3s ease, color 0.3s ease;
+    transition: background-color 0.4s ease, color 0.4s ease;
+    letter-spacing: -0.01em;
   }
   
   body {
@@ -31,60 +68,92 @@
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     overflow-x: hidden;
+    font-feature-settings: "cv02", "cv03", "cv04", "cv11";
   }
 
   /* Dark Mode / High Contrast Optimization */
   body.high-contrast {
-    background-color: #0f172a !important; /* Dark Slate */
+    background-color: #0b1329 !important;
     color: #f8fafc !important;
   }
   
-  /* Override light backgrounds automatically in Dark Mode */
   body.high-contrast .bg-white,
   body.high-contrast .bg-white\/90,
   body.high-contrast .bg-white\/95,
   body.high-contrast .bg-gray-50,
-  body.high-contrast .bg-gray-100 {
-    background-color: #1e293b !important;
-    border-color: #334155 !important;
+  body.high-contrast .bg-gray-100,
+  body.high-contrast .bg-slate-50 {
+    background-color: #162238 !important;
+    border-color: #2a3c5a !important;
   }
 
-  /* Override dark texts to light in Dark Mode */
   body.high-contrast .text-gray-900,
+  body.high-contrast .text-slate-900,
   body.high-contrast .text-gray-800,
-  body.high-contrast .text-gray-700,
+  body.high-contrast .text-slate-800 {
+    color: #f8fafc !important;
+  }
+
   body.high-contrast .text-gray-600,
-  body.high-contrast .text-gray-500 {
-    color: #e2e8f0 !important;
+  body.high-contrast .text-slate-600,
+  body.high-contrast .text-gray-500,
+  body.high-contrast .text-slate-500 {
+    color: #cbd5e1 !important;
   }
 
-  /* Custom overrides for specific elements in Dark Mode */
-  body.high-contrast .glass-panel {
-    background-color: rgba(30, 41, 59, 0.8) !important;
-    border-color: rgba(255, 255, 255, 0.1) !important;
-  }
-  
-  body.high-contrast h1, 
-  body.high-contrast h2, 
-  body.high-contrast h3, 
-  body.high-contrast h4 {
-    color: #ffffff !important;
+  body.high-contrast .glass-panel,
+  body.high-contrast .glass-card,
+  body.high-contrast .glass-modal {
+    background: rgba(22, 34, 56, 0.85) !important;
+    border-color: rgba(255, 255, 255, 0.12) !important;
+    box-shadow: 0 10px 30px -5px rgba(0, 0, 0, 0.5) !important;
   }
 }
 
+/* Glassmorphism System */
 @layer utilities {
+  /* Panel Glassmorphism (para barras de navegación, contenedores principales y tarjetas flotantes) */
   .glass-panel {
-    @apply bg-white/80 backdrop-blur-md border border-gray-200 shadow-xl;
+    background: rgba(255, 255, 255, 0.82);
+    backdrop-filter: blur(16px) saturate(180%);
+    -webkit-backdrop-filter: blur(16px) saturate(180%);
+    border: 1px solid rgba(255, 255, 255, 0.75);
+    box-shadow: 0 10px 25px -5px rgba(11, 28, 48, 0.05), 0 0 0 1px rgba(226, 232, 240, 0.4);
   }
   
-  .text-gradient {
-    @apply bg-clip-text text-transparent bg-gradient-to-r from-accent-500 to-brand-500;
+  /* Card Glassmorphism (para tarjetas de lugares, widgets y módulos) */
+  .glass-card {
+    background: rgba(255, 255, 255, 0.88);
+    backdrop-filter: blur(12px) saturate(160%);
+    -webkit-backdrop-filter: blur(12px) saturate(160%);
+    border: 1px solid rgba(255, 255, 255, 0.9);
+    box-shadow: 0 4px 20px -2px rgba(11, 28, 48, 0.04), 0 1px 3px rgba(11, 28, 48, 0.02);
   }
-}
 
-@layer utilities {
-  .glass-panel {
-    @apply bg-white/80 backdrop-blur-md border border-gray-200 shadow-xl;
+  /* Modal Glassmorphism (para modales, asistente y planificador) */
+  .glass-modal {
+    background: rgba(255, 255, 255, 0.94);
+    backdrop-filter: blur(20px) saturate(190%);
+    -webkit-backdrop-filter: blur(20px) saturate(190%);
+    border: 1px solid rgba(255, 255, 255, 0.95);
+    box-shadow: 0 25px 50px -12px rgba(11, 28, 48, 0.22);
+  }
+
+  /* Pill Glassmorphism (para chips interactivos, filtros y badges) */
+  .glass-pill {
+    background: rgba(255, 255, 255, 0.75);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    border: 1px solid rgba(255, 255, 255, 0.6);
+  }
+
+  /* Dark Glassmorphism */
+  .glass-dark {
+    background: rgba(11, 28, 48, 0.82);
+    backdrop-filter: blur(16px) saturate(160%);
+    -webkit-backdrop-filter: blur(16px) saturate(160%);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    box-shadow: 0 10px 30px -5px rgba(0, 0, 0, 0.35);
   }
   
   .text-gradient {

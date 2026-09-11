@@ -43,7 +43,7 @@ export default function ItineraryPlannerModal({ isOpen, onClose }) {
         initial={{ opacity: 0, scale: 0.94, y: 20 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
         exit={{ opacity: 0, scale: 0.94 }}
-        className="bg-white rounded-3xl overflow-hidden shadow-2xl border border-slate-200 max-w-2xl w-full max-h-[90vh] flex flex-col relative"
+        className="glass-modal rounded-3xl overflow-hidden shadow-2xl border border-white/80 max-w-2xl w-full max-h-[90vh] flex flex-col relative"
       >
         {/* Header */}
         <div className="p-6 pb-4 bg-slate-900 text-white flex items-center justify-between border-b border-slate-800">

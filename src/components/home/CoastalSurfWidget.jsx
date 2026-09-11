@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Waves, Sun, ShieldAlert, Wind, ChevronRight, Gauge, Droplets, ExternalLink } from 'lucide-react';
+import { Waves, Sun, Cloud, CloudSun, Sunset, Moon, ShieldAlert, Wind, ChevronRight, Droplets, Sparkles } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 const BEACHES = [
@@ -41,33 +41,85 @@ const BEACHES = [
   }
 ];
 
-export default function CoastalSurfWidget({ onSelectBeach }) {
+function getWeatherVisuals(type) {
+  switch (type) {
+    case 'sunset':
+      return {
+        Icon: Sunset,
+        iconBg: 'bg-orange-100 text-orange-600',
+        badgeBg: 'bg-orange-100 text-orange-800 border-orange-200',
+        pillLabel: 'Atardecer'
+      };
+    case 'cloudy':
+      return {
+        Icon: Cloud,
+        iconBg: 'bg-slate-200 text-slate-700',
+        badgeBg: 'bg-slate-100 text-slate-700 border-slate-300',
+        pillLabel: 'Nublado'
+      };
+    case 'partlyCloudy':
+      return {
+        Icon: CloudSun,
+        iconBg: 'bg-sky-100 text-sky-600',
+        badgeBg: 'bg-sky-100 text-sky-800 border-sky-200',
+        pillLabel: 'Parcial'
+      };
+    case 'night':
+      return {
+        Icon: Moon,
+        iconBg: 'bg-indigo-100 text-indigo-600',
+        badgeBg: 'bg-indigo-100 text-indigo-800 border-indigo-200',
+        pillLabel: 'Noche'
+      };
+    case 'clear':
+    default:
+      return {
+        Icon: Sun,
+        iconBg: 'bg-amber-100 text-amber-600',
+        badgeBg: 'bg-amber-100 text-amber-800 border-amber-200',
+        pillLabel: 'Soleado'
+      };
+  }
+}
+
+export default function CoastalSurfWidget({
+  onSelectBeach,
+  weatherData: externalWeather,
+  activeCondition = 'clear',
+  previewCondition = null,
+  onSetPreviewCondition
+}) {
   const [selectedBeach, setSelectedBeach] = useState(0);
-  const [showMeteoStation, setShowMeteoStation] = useState(false);
 
   // Datos meteorológicos en tiempo real (Estación Capitanía de Puerto RMCL0114 - RedMeteo 3.0)
-  const [weather, setWeather] = useState({
-    temp: 21.6,
-    humidity: 78,
-    windSpeedKmH: 11.8,
-    windDirection: 'S',
-    solarRadiation: 359,
-    uvIndex: 2,
+  const [internalWeather, setInternalWeather] = useState({
+    temp: 20.6,
+    condition: 'Soleado',
+    conditionType: 'clear',
+    conditionDesc: 'Sol radiante de Eterna Primavera',
+    humidity: 79,
+    windSpeedKmH: 14.6,
+    windDirection: 'SSE',
+    uvIndex: 1,
     stationName: 'Arica - Capitanía de Puerto (SERVIMET)',
     lastUpdate: 'En vivo'
   });
 
   useEffect(() => {
+    if (externalWeather) return;
+
     fetch('http://localhost:5000/api/weather/live')
       .then(res => res.json())
       .then(data => {
         if (data && data.current) {
-          setWeather({
+          setInternalWeather({
             temp: data.current.temp,
+            condition: data.current.condition || 'Soleado',
+            conditionType: data.current.conditionType || 'clear',
+            conditionDesc: data.current.conditionDesc || 'Sol costero',
             humidity: data.current.humidity,
             windSpeedKmH: data.current.windSpeedKmH,
             windDirection: data.current.windDirection,
-            solarRadiation: data.current.solarRadiation,
             uvIndex: data.current.uvIndex,
             stationName: data.station?.name || 'Arica - Capitanía de Puerto',
             lastUpdate: data.station?.lastUpdate
@@ -76,10 +128,11 @@ export default function CoastalSurfWidget({ onSelectBeach }) {
           });
         }
       })
-      .catch(() => {
-        // En caso de fallo de red, mantiene valores iniciales
-      });
-  }, []);
+      .catch(() => {});
+  }, [externalWeather]);
+
+  const activeWeather = externalWeather || internalWeather;
+  const visuals = getWeatherVisuals(activeCondition || activeWeather.conditionType);
 
   const getFlagBadge = (flag) => {
     switch (flag) {
@@ -124,9 +177,9 @@ export default function CoastalSurfWidget({ onSelectBeach }) {
   };
 
   return (
-    <div className="bg-white rounded-3xl p-6 sm:p-8 shadow-xl border border-slate-200/80 text-slate-800 relative overflow-hidden">
+    <div className="glass-card rounded-3xl p-6 sm:p-8 shadow-xl border border-white/80 text-slate-800 relative overflow-hidden backdrop-blur-xl">
       {/* Header bar */}
-      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 pb-6 border-b border-slate-100">
+      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-5 pb-5 border-b border-slate-100">
         <div>
           <div className="flex items-center gap-2 text-brand-600 text-xs font-black uppercase tracking-wider mb-1">
             <Waves size={16} />
@@ -135,97 +188,135 @@ export default function CoastalSurfWidget({ onSelectBeach }) {
           <h3 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">
             Playas, Mareas y Surf en Arica
           </h3>
+          <p className="text-xs text-slate-500 font-medium mt-1">
+            {activeWeather.conditionDesc || 'Monitoreo de la bahía en tiempo real con datos de Capitanía de Puerto'}
+          </p>
         </div>
 
-        {/* Live weather pills alimentadas con RedMeteo 3.0 */}
-        <div className="flex flex-wrap items-center gap-2 text-xs">
-          <div className="bg-amber-50 text-amber-900 border border-amber-200/80 px-3.5 py-2 rounded-xl flex items-center gap-2 font-bold shadow-2xs">
-            <Sun size={16} className="text-amber-500 shrink-0" />
-            <span>{weather.temp}°C · Capitanía de Puerto</span>
+        {/* Unified, Simple Horizontal Weather Capsule */}
+        <div className="flex flex-col gap-2 shrink-0">
+          <div className="inline-flex items-center gap-3 px-4 py-2.5 rounded-2xl glass-panel shadow-xs text-slate-800">
+            {/* Weather Icon Badge */}
+            <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 shadow-2xs ${visuals.iconBg}`}>
+              <visuals.Icon size={22} />
+            </div>
+
+            {/* Main Temp & Condition */}
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="text-xl sm:text-2xl font-black text-slate-900 leading-none">
+                  {activeWeather.temp}°C
+                </span>
+                <span className={`text-xs font-black px-2.5 py-0.5 rounded-full border ${visuals.badgeBg}`}>
+                  {activeWeather.condition || visuals.pillLabel}
+                </span>
+              </div>
+              <div className="flex items-center gap-1.5 text-[11px] text-slate-500 font-semibold mt-0.5">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse shrink-0" />
+                <span className="truncate">Capitanía de Puerto (RedMeteo)</span>
+              </div>
+            </div>
+
+            {/* Vertical separator */}
+            <div className="hidden sm:block h-8 w-px bg-slate-200 mx-1" />
+
+            {/* Compact Inline Secondary Metrics */}
+            <div className="hidden sm:flex items-center gap-3 text-xs font-semibold text-slate-600">
+              <span className="flex items-center gap-1" title="Viento en la bahía">
+                <Wind size={14} className="text-sky-500 shrink-0" />
+                <span>{activeWeather.windSpeedKmH} km/h {activeWeather.windDirection}</span>
+              </span>
+              <span className="text-slate-300">·</span>
+              <span className="flex items-center gap-1" title="Índice UV">
+                <ShieldAlert size={14} className="text-orange-500 shrink-0" />
+                <span>UV {activeWeather.uvIndex}</span>
+              </span>
+              <span className="text-slate-300">·</span>
+              <span className="flex items-center gap-1" title="Humedad relativa">
+                <Droplets size={14} className="text-blue-500 shrink-0" />
+                <span>{activeWeather.humidity}%</span>
+              </span>
+            </div>
           </div>
 
-          <div className="bg-orange-50 text-orange-900 border border-orange-200/80 px-3.5 py-2 rounded-xl flex items-center gap-2 font-bold shadow-2xs">
-            <ShieldAlert size={16} className="text-orange-500 shrink-0" />
-            <span>Índice UV {weather.uvIndex}</span>
+          {/* Mobile secondary row */}
+          <div className="flex sm:hidden items-center justify-between text-xs font-semibold text-slate-600 px-3 py-1.5 bg-slate-50 rounded-xl border border-slate-200/70">
+            <span className="flex items-center gap-1">
+              <Wind size={13} className="text-sky-500" />
+              {activeWeather.windSpeedKmH} km/h {activeWeather.windDirection}
+            </span>
+            <span className="text-slate-300">·</span>
+            <span className="flex items-center gap-1">
+              <ShieldAlert size={13} className="text-orange-500" />
+              UV {activeWeather.uvIndex}
+            </span>
+            <span className="text-slate-300">·</span>
+            <span className="flex items-center gap-1">
+              <Droplets size={13} className="text-blue-500" />
+              {activeWeather.humidity}%
+            </span>
           </div>
-
-          <div className="bg-sky-50 text-sky-900 border border-sky-200/80 px-3.5 py-2 rounded-xl flex items-center gap-2 font-bold shadow-2xs">
-            <Wind size={16} className="text-sky-500 shrink-0" />
-            <span>Viento: {weather.windSpeedKmH} km/h {weather.windDirection}</span>
-          </div>
-
-          <div className="bg-blue-50 text-blue-900 border border-blue-200/80 px-3 py-2 rounded-xl hidden sm:flex items-center gap-1.5 font-bold shadow-2xs">
-            <Droplets size={15} className="text-blue-500 shrink-0" />
-            <span>{weather.humidity}% Humedad</span>
-          </div>
-
-          {/* Botón para desplegar la Estación RedMeteo Oficial */}
-          <button
-            onClick={() => setShowMeteoStation(!showMeteoStation)}
-            className={`px-3.5 py-2 rounded-xl font-black transition-all flex items-center gap-1.5 border cursor-pointer ${
-              showMeteoStation
-                ? 'bg-brand-500 text-white border-brand-500 shadow-md shadow-brand-500/20'
-                : 'bg-slate-100 hover:bg-slate-200/80 text-slate-700 border-slate-200'
-            }`}
-          >
-            <Gauge size={15} />
-            <span>{showMeteoStation ? 'Ocultar Estación' : 'Estación RedMeteo 3.0'}</span>
-          </button>
         </div>
       </div>
 
-      {/* Desplegable de la Estación Meteorológica en Vivo de RedMeteo */}
-      <AnimatePresence>
-        {showMeteoStation && (
-          <motion.div
-            initial={{ height: 0, opacity: 0 }}
-            animate={{ height: 'auto', opacity: 1 }}
-            exit={{ height: 0, opacity: 0 }}
-            transition={{ duration: 0.3 }}
-            className="overflow-hidden pt-5 pb-2"
-          >
-            <div className="bg-slate-50 rounded-2xl p-4 sm:p-5 border border-sky-100 shadow-inner">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-3">
-                <div className="flex items-center gap-2">
-                  <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" />
-                  <span className="text-xs sm:text-sm font-black text-slate-900">
-                    Estación Meteorológica Arica - Capitanía de Puerto (RMCL0114)
-                  </span>
-                </div>
-                <a
-                  href="https://www.redmeteo.cl/"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-[11px] font-bold text-brand-600 hover:text-brand-700 flex items-center gap-1 self-start sm:self-auto"
-                >
-                  <span>Ver en RedMeteo.cl</span>
-                  <ExternalLink size={12} />
-                </a>
-              </div>
+      {/* Atmospheric Environment Control: Allows user to see how the website background changes with the city's climate */}
+      {onSetPreviewCondition && (
+        <div className="flex flex-wrap items-center justify-between gap-2 pt-3 pb-1 text-xs border-b border-slate-100 mb-2">
+          <div className="flex items-center gap-1.5 text-slate-500 font-medium">
+            <Sparkles size={13} className="text-amber-500" />
+            <span>Fondo ambiental de la ciudad:</span>
+            <strong className="text-slate-800 font-bold">
+              {!previewCondition
+                ? `🔴 Tiempo real (${activeWeather.condition})`
+                : (previewCondition === 'clear' ? '☀️ Soleado' : previewCondition === 'cloudy' ? '☁️ Nublado' : previewCondition === 'sunset' ? '🌅 Atardecer' : '🌙 Noche')}
+            </strong>
+          </div>
 
-              {/* Iframe oficial de RedMeteo 3.0 */}
-              <div className="w-full overflow-hidden rounded-xl border border-slate-200 bg-white shadow-xs">
-                <iframe
-                  src="https://redmeteo.cl/compartir.php?codigo=RMCL0114"
-                  width="100%"
-                  height="320"
-                  className="w-full border-0"
-                  title="Estación Meteorológica Arica - Capitanía de Puerto RMCL0114"
-                  loading="lazy"
-                />
-              </div>
-
-              {/* Cita en formato APA requerida por RedMeteo */}
-              <p className="text-[11px] text-slate-500 mt-2.5 leading-relaxed font-medium">
-                <strong>Referencia oficial:</strong> Red Meteorológica Aficionada de Chile. (2019). Sitio web RedMeteo. Red Ciudadana De Estaciones Meteorológicas. Estación RMCL0114 Arica (SERVIMET). Consultado en tiempo real desde{' '}
-                <a href="https://www.redmeteo.cl/" target="_blank" rel="noopener noreferrer" className="text-brand-600 underline">
-                  https://www.redmeteo.cl/
-                </a>
-              </p>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+          <div className="flex items-center gap-1 bg-slate-100/90 p-1 rounded-xl border border-slate-200/80">
+            <button
+              onClick={() => onSetPreviewCondition(null)}
+              className={`px-2.5 py-1 rounded-lg text-[11px] font-bold transition-all cursor-pointer ${
+                !previewCondition ? 'bg-white text-brand-600 shadow-xs' : 'text-slate-600 hover:text-slate-900'
+              }`}
+              title="Volver a la observación en tiempo real de RedMeteo"
+            >
+              🔴 En vivo
+            </button>
+            <button
+              onClick={() => onSetPreviewCondition('clear')}
+              className={`px-2.5 py-1 rounded-lg text-[11px] font-bold transition-all cursor-pointer ${
+                previewCondition === 'clear' ? 'bg-white text-amber-600 shadow-xs' : 'text-slate-600 hover:text-slate-900'
+              }`}
+            >
+              ☀️ Soleado
+            </button>
+            <button
+              onClick={() => onSetPreviewCondition('cloudy')}
+              className={`px-2.5 py-1 rounded-lg text-[11px] font-bold transition-all cursor-pointer ${
+                previewCondition === 'cloudy' ? 'bg-white text-slate-700 shadow-xs' : 'text-slate-600 hover:text-slate-900'
+              }`}
+            >
+              ☁️ Nublado
+            </button>
+            <button
+              onClick={() => onSetPreviewCondition('sunset')}
+              className={`px-2.5 py-1 rounded-lg text-[11px] font-bold transition-all cursor-pointer ${
+                previewCondition === 'sunset' ? 'bg-white text-orange-600 shadow-xs' : 'text-slate-600 hover:text-slate-900'
+              }`}
+            >
+              🌅 Atardecer
+            </button>
+            <button
+              onClick={() => onSetPreviewCondition('night')}
+              className={`px-2.5 py-1 rounded-lg text-[11px] font-bold transition-all cursor-pointer ${
+                previewCondition === 'night' ? 'bg-white text-indigo-600 shadow-xs' : 'text-slate-600 hover:text-slate-900'
+              }`}
+            >
+              🌙 Noche
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Beach Selector Tabs */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 pt-6">
@@ -256,7 +347,7 @@ export default function CoastalSurfWidget({ onSelectBeach }) {
       </div>
 
       {/* Selected Beach Details Card */}
-      <div className="mt-5 bg-gradient-to-br from-sky-50/50 via-slate-50 to-white rounded-2xl p-5 sm:p-6 border border-sky-100 flex flex-col sm:flex-row sm:items-center justify-between gap-5 shadow-sm">
+      <div className="mt-5 glass-panel rounded-2xl p-5 sm:p-6 border border-white/70 flex flex-col sm:flex-row sm:items-center justify-between gap-5 shadow-sm">
         <div className="space-y-2 max-w-xl">
           <div className="flex items-center gap-3 flex-wrap">
             <h4 className="text-xl font-black text-slate-900">{current.name}</h4>
