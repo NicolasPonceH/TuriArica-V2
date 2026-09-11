@@ -5,9 +5,9 @@ import { requireAuth } from '../middleware/auth.js';
 const router = Router();
 
 // 1. Obtener eventos y anuncios activos (Público - para modal emergente y campana)
-router.get('/active', (req, res) => {
+router.get('/active', async (req, res) => {
   try {
-    const events = dbOperations.getActiveEvents();
+    const events = await dbOperations.getActiveEvents();
     res.json(events);
   } catch (error) {
     console.error('Error al obtener eventos activos:', error);
@@ -16,9 +16,9 @@ router.get('/active', (req, res) => {
 });
 
 // 2. Obtener todos los eventos (Protegido - panel de administración)
-router.get('/', requireAuth, (req, res) => {
+router.get('/', requireAuth, async (req, res) => {
   try {
-    const events = dbOperations.getAllEvents();
+    const events = await dbOperations.getAllEvents();
     res.json(events);
   } catch (error) {
     console.error('Error al obtener lista de eventos:', error);
@@ -27,7 +27,7 @@ router.get('/', requireAuth, (req, res) => {
 });
 
 // 3. Crear nuevo evento o anuncio (Protegido)
-router.post('/', requireAuth, (req, res) => {
+router.post('/', requireAuth, async (req, res) => {
   try {
     const { title, message, type, startDate, endDate, isActive, isPopup, bannerUrl, actionUrl, priority } = req.body;
 
@@ -35,7 +35,7 @@ router.post('/', requireAuth, (req, res) => {
       return res.status(400).json({ error: 'Título y mensaje son obligatorios.' });
     }
 
-    const newEvent = dbOperations.createEvent({
+    const newEvent = await dbOperations.createEvent({
       title,
       message,
       type: type || 'evento',
@@ -59,10 +59,10 @@ router.post('/', requireAuth, (req, res) => {
 });
 
 // 4. Actualizar evento existente (Protegido)
-router.put('/:id', requireAuth, (req, res) => {
+router.put('/:id', requireAuth, async (req, res) => {
   try {
     const id = Number(req.params.id);
-    const updated = dbOperations.updateEvent(id, req.body);
+    const updated = await dbOperations.updateEvent(id, req.body);
     if (!updated) {
       return res.status(404).json({ error: 'Evento no encontrado.' });
     }
@@ -78,10 +78,10 @@ router.put('/:id', requireAuth, (req, res) => {
 });
 
 // 5. Eliminar evento (Protegido)
-router.delete('/:id', requireAuth, (req, res) => {
+router.delete('/:id', requireAuth, async (req, res) => {
   try {
     const id = Number(req.params.id);
-    dbOperations.deleteEvent(id);
+    await dbOperations.deleteEvent(id);
     res.json({ message: 'Evento eliminado correctamente.' });
   } catch (error) {
     console.error('Error al eliminar evento:', error);

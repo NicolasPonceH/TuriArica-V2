@@ -5,7 +5,7 @@ import path from 'node:path';
 import fs from 'node:fs';
 import { fileURLToPath } from 'node:url';
 
-import { seedDatabase } from './db.js';
+import { initDatabase, seedDatabase, getActiveEngine } from './db.js';
 import authRouter from './routes/auth.js';
 import placesRouter from './routes/places.js';
 import eventsRouter from './routes/events.js';
@@ -59,6 +59,7 @@ app.get('/api/health', (req, res) => {
   res.json({
     status: 'ok',
     app: 'TuriArica API Server',
+    databaseEngine: getActiveEngine(),
     version: '2.0.0',
     timestamp: new Date().toISOString()
   });
@@ -76,17 +77,23 @@ app.use((err, req, res, next) => {
 const adminUser = process.env.ADMIN_USER || 'admin';
 const adminPass = process.env.ADMIN_PASS || 'turiarica2026';
 
-try {
-  seedDatabase(adminUser, adminPass);
-} catch (e) {
-  console.error('[DB SEED WARNING]', e);
+async function startServer() {
+  try {
+    await initDatabase();
+    await seedDatabase(adminUser, adminPass);
+  } catch (e) {
+    console.error('[DB STARTUP ERROR]', e);
+  }
+
+  app.listen(PORT, () => {
+    console.log(`===========================================`);
+    console.log(`🚀 TuriArica Backend Server activo`);
+    console.log(`🐬 Motor Base de Datos: ${getActiveEngine().toUpperCase()}`);
+    console.log(`📡 URL API: http://localhost:${PORT}/api`);
+    console.log(`📸 Subidas multimedia: http://localhost:${PORT}/uploads`);
+    console.log(`🤖 Endpoints IA: http://localhost:${PORT}/api/ai/context`);
+    console.log(`===========================================`);
+  });
 }
 
-app.listen(PORT, () => {
-  console.log(`===========================================`);
-  console.log(`🚀 TuriArica Backend Server activo`);
-  console.log(`📡 URL API: http://localhost:${PORT}/api`);
-  console.log(`📸 Subidas multimedia: http://localhost:${PORT}/uploads`);
-  console.log(`🤖 Endpoints IA: http://localhost:${PORT}/api/ai/context`);
-  console.log(`===========================================`);
-});
+startServer();

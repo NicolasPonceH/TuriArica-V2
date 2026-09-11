@@ -26,10 +26,10 @@ Reglas estrictas:
 7. Si hay varios lugares que cumplen, enumera hasta 3 opciones como máximo, con nombre y una frase de por qué recomendarlos.
 8. En ningún caso menciones qué modelo de IA eres ni hagas alusión a OpenAI, Groq u otras tecnologías. Preséntate y actúa siempre como el asistente turístico de Arica.`;
 
-// Función auxiliar para compilar el contexto oficial desde SQLite y RedMeteo
+// Función auxiliar para compilar el contexto oficial desde MySQL/SQLite y RedMeteo
 async function buildOfficialContext() {
-  const places = dbOperations.getAllPlaces();
-  const events = dbOperations.getActiveEvents();
+  const places = await dbOperations.getAllPlaces();
+  const events = await dbOperations.getActiveEvents();
 
   let weatherText = '';
   try {

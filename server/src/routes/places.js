@@ -5,9 +5,9 @@ import { requireAuth } from '../middleware/auth.js';
 const router = Router();
 
 // 1. Obtener todos los lugares (Público)
-router.get('/', (req, res) => {
+router.get('/', async (req, res) => {
   try {
-    const places = dbOperations.getAllPlaces();
+    const places = await dbOperations.getAllPlaces();
     res.json(places);
   } catch (error) {
     console.error('Error al obtener lugares:', error);
@@ -16,9 +16,9 @@ router.get('/', (req, res) => {
 });
 
 // 2. Obtener un lugar por ID (Público)
-router.get('/:id', (req, res) => {
+router.get('/:id', async (req, res) => {
   try {
-    const place = dbOperations.getPlaceById(Number(req.params.id));
+    const place = await dbOperations.getPlaceById(Number(req.params.id));
     if (!place) {
       return res.status(404).json({ error: 'Lugar no encontrado.' });
     }
@@ -29,14 +29,14 @@ router.get('/:id', (req, res) => {
 });
 
 // 3. Crear un nuevo lugar (Protegido Admin)
-router.post('/', requireAuth, (req, res) => {
+router.post('/', requireAuth, async (req, res) => {
   try {
     const data = req.body;
     if (!data.name || !data.category || data.lat === undefined || data.lng === undefined) {
       return res.status(400).json({ error: 'Nombre, categoría, latitud y longitud son campos obligatorios.' });
     }
 
-    const newPlace = dbOperations.createPlace(data);
+    const newPlace = await dbOperations.createPlace(data);
     res.status(201).json({
       message: 'Lugar creado exitosamente.',
       place: newPlace
@@ -48,15 +48,15 @@ router.post('/', requireAuth, (req, res) => {
 });
 
 // 4. Actualizar un lugar existente (Protegido Admin)
-router.put('/:id', requireAuth, (req, res) => {
+router.put('/:id', requireAuth, async (req, res) => {
   try {
     const id = Number(req.params.id);
-    const existing = dbOperations.getPlaceById(id);
+    const existing = await dbOperations.getPlaceById(id);
     if (!existing) {
       return res.status(404).json({ error: 'Lugar no encontrado.' });
     }
 
-    const updated = dbOperations.updatePlace(id, req.body);
+    const updated = await dbOperations.updatePlace(id, req.body);
     res.json({
       message: 'Lugar actualizado exitosamente.',
       place: updated
@@ -68,15 +68,15 @@ router.put('/:id', requireAuth, (req, res) => {
 });
 
 // 5. Eliminar un lugar (Protegido Admin)
-router.delete('/:id', requireAuth, (req, res) => {
+router.delete('/:id', requireAuth, async (req, res) => {
   try {
     const id = Number(req.params.id);
-    const existing = dbOperations.getPlaceById(id);
+    const existing = await dbOperations.getPlaceById(id);
     if (!existing) {
       return res.status(404).json({ error: 'Lugar no encontrado.' });
     }
 
-    dbOperations.deletePlace(id);
+    await dbOperations.deletePlace(id);
     res.json({ message: 'Lugar eliminado correctamente.' });
   } catch (error) {
     console.error('Error al eliminar lugar:', error);
